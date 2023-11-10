@@ -1,0 +1,8 @@
+disco.yml
+hue.yml
+cmd/color/color
+cmd/disco/disco
+cmd/discod/discod
+cmd/hue/hue
+cmd/lifx/lifx
+dist/

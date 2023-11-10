@@ -1,0 +1,35 @@
+package lifx
+
+import (
+	"bytes"
+	"testing"
+)
+
+func TestHeader(t *testing.T) {
+	h := header{
+		tagged: true,
+		ptype:  liSetColor,
+	}
+	ex := []byte{
+		0x00, 0x00, 0x00, 0x34, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x66, 0x00, 0x00, 0x00,
+	}
+	b, err := h.marshal()
+	if err != nil {
+		t.Errorf("marshal, unexpected: %s", err)
+	}
+	if !bytes.Equal(b, ex) {
+		t.Errorf("expected\n  % x\ngot\n  % x", ex, b)
+	}
+	var ho header
+	err = ho.unmarshal(b)
+	if err != nil {
+		t.Errorf("unmarshal, unexpected: %s", err)
+	}
+	if h != ho {
+		t.Errorf("expected\n  %#+v\ngot\n  %#+v", ex, b)
+	}
+}

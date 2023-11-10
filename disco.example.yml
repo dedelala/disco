@@ -1,0 +1,515 @@
+---
+#  +----------------------------------------------------------------------+
+#  |           ===========   =====  ==========   ========     ========    |
+#  |           ===     ===   ===  ===      ==  ===    ===   ===    ===    |
+#  |          ===      ===  ===  ====        ===          ===      ===    |
+#  |         ===      ===  ===   ====       ===          ===      ===     |
+#  |        ===      ===  ===     =====    ===          ===      ===      |
+#  |       ===      ===  ===        ====  ===          ===      ===       |
+#  |      ===      ===  ===         ==== ===          ===      ===        |
+#  |     ===     ===   ===  ==      ===  ===    ===   ===    ===          |
+#  |   ===========   ===== ==========    ========     ========            |
+#  +----------------------------------------------------------------------+
+#  |            Domestic Illumination System Control Operator             |
+#  +----------------------------------------------------------------------+
+#  File: disco.example.yml
+#  This is my real disco.yml with sensitive information redacted and device
+#  IDs scrambled.
+
+# Hue Backend Config
+Hue:
+  # My bridge has a static IP and local DNS name. You can just roll the with
+  # the static IP.
+  Host: hue.private
+  # Hue application key can be generated on the command line according to
+  # the Phillips API documentation.
+  Key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-xxxx--xx
+
+# LIFX Backend Config
+Lifx:
+  # Timeout is when to give up discovering devices, this applies to the command
+  # line tool only.
+  Timeout: 3000
+  # Setting the number of devices short circuits the discovery timeout if all
+  # devices report in.
+  Devices: 15
+
+# Map converts prefixed device IDs to friendly names.
+Map:
+  hue/efdfee0c-3343-41f7-9768-bde7a8834751: up1
+  hue/423e8eaf-857e-44a9-ad7b-ed3626e2993c: up2
+  hue/432d8c3b-5dc8-4317-be12-01010b71f9fa: up3
+  hue/fbed49ca-b685-45b5-9041-c1586f2bd46c: up4
+  hue/ece0998d-03c1-4619-930d-73e340e1bf06: bed
+  hue/0f16ff4e-b162-4fc1-8489-6a7c0419e2d4: decksb
+  hue/74b29ed9-6e6c-4e8d-84e4-b1755abc3d3e/0: decksb5
+  hue/53154648-4ca5-4809-87ae-cc6b8f11492d/1: decksb4
+  hue/4d2598bd-0fcc-48ca-a7c5-a846590ee1c7/2: decksb3
+  hue/c36d2013-1e87-4dd4-bfcf-9af2bb19eb29/3: decksb2
+  hue/c1947397-e847-49f3-9cca-da6dbec657b8/4: decksb1
+  hue/f110e280-0996-409e-9e50-f63575497929: garden
+  hue/5d4a02fb-db4d-434e-b519-666ce288f8c2: sound
+  hue/2b2b779d-d5f8-4017-8850-f28072df3047: mb
+  lifx/51a021d573d0: down01
+  lifx/7d06ead573d0: down02
+  lifx/b90a34d573d0: down03
+  lifx/11c7b8d573d0: down04
+  lifx/ca2d60d573d0: down05
+  lifx/89ed7cd573d0: down06
+  lifx/339af6d573d0: down07
+  lifx/2eff97d573d0: down08
+  lifx/c4633dd573d0: down09
+  lifx/4ee90ed573d0: down10
+  lifx/4d47c2d573d0: fire1
+  lifx/cf5a26d573d0: fire2
+  lifx/d9c8d3d573d0: decks1
+  lifx/9abb5fd573d0: decks2
+  lifx/8652bcd573d0: huns
+
+# Link groups devices together under a common name.
+Link:
+  ups: [up1, up2, up3, up4]
+  downs: [down01, down02, down03, down04, down05, down06, down07, down08, down09, down10]
+  downs-v1: [down01, down04, down05, down08, down09]
+  downs-v2: [down02, down03, down06, down07, down10]
+  fire: [fire1, fire2]
+  decks: [decks1, decks2, decksb]
+  decks-o: [decks1, decks2]
+  decks-i: [decksb1, decksb2, decksb4, decksb5]
+  decks-l: [decks1, decksb1, decksb2]
+  decks-r: [decksb4, decksb5, decks2]
+  decks-m: [decksb3]
+  walls: [ups, fire, decks, huns, bed]
+  all: [ups, downs, fire, decks, huns, bed]
+
+# Cue is a list of commands with a unique slug and a friendly name.
+Cue:
+  all-off:
+    Text: All Off
+    Cmds:
+      - switch all off
+      - switch mb off
+      - switch sound off
+  light-on:
+    Text: Light On
+    Cmds:
+      - switch all on
+  light-off:
+    Text: Light Off
+    Cmds:
+      - switch all off
+  sound-on:
+    Text: Sound On
+    Cmds:
+      - switch sound on
+  sound-off:
+    Text: Sound Off
+    Cmds:
+      - switch sound off
+  mb-on:
+    Text: Disco On
+    Cmds:
+      - switch mb on
+  mb-off:
+    Text: Disco Off
+    Cmds:
+      - switch mb off
+  all-100:
+    Text: All 100
+    Cmds:
+      - dim all 100
+  down-5:
+    Text: D 005
+    Cmds:
+      - dim downs 5
+  down-25:
+    Text: D 025
+    Cmds:
+      - dim downs 25
+  down-50:
+    Text: D 050
+    Cmds:
+      - dim downs 50
+  down-100:
+    Text: D 100
+    Cmds:
+      - dim downs 100
+  wall-50:
+    Text: W 050
+    Cmds:
+      - dim walls 50
+  wall-100:
+    Text: W 100
+    Cmds:
+      - dim walls 100
+  downs-red:
+    Text: Downs Red
+    Cmds:
+      - color downs crimson
+  downs-pink:
+    Text: Downs Pink
+    Cmds:
+      - color downs strong-pink
+  downs-blue:
+    Text: Downs Blue
+    Cmds:
+      - color downs strong-blue
+  ups-ultra:
+    Text: Ups Ultra
+    Cmds:
+      - color ups ultramarine
+  ups-aubergine:
+    Text: Ups Aubergine
+    Cmds:
+      - color ups aubergine
+  ups-raspberry:
+    Text: Ups Raspberry
+    Cmds:
+      - color ups raspberry
+  ups-tangerine:
+    Text: Ups Tangerine
+    Cmds:
+      - color ups tangerine
+  fire-crimson:
+    Text: Fire Crimson
+    Cmds:
+      - color fire crimson
+  fire-brick-red:
+    Text: Fire Brick Red
+    Cmds:
+      - color fire brick-red
+  fire-plum:
+    Text: Fire Plum
+    Cmds:
+      - color fire plum
+  fire-terracotta:
+    Text: Fire Terracotta
+    Cmds:
+      - color fire terracota
+  huns-azul:
+    Text: Huns Azul
+    Cmds:
+      - color huns azul
+  huns-ruby:
+    Text: Huns Ruby
+    Cmds:
+      - color huns ruby
+  bed-candy-pink:
+    Text: Bed Candy Pink
+    Cmds:
+      - color bed candy-pink
+  bed-cinnamon:
+    Text: Bed Cinnamon
+    Cmds:
+      - color bed cinnamon
+  bed-sapphire:
+    Text: Bed Sapphire
+    Cmds:
+      - color bed sapphire
+  bed-terracotta:
+    Text: Bed Terracotta
+    Cmds:
+      - color bed terracotta
+  walls-red:
+    Text: Walls Red
+    Cmds:
+      - color walls crimson
+  walls-pink:
+    Text: Walls Pink
+    Cmds:
+      - color walls strong-pink
+  walls-blue:
+    Text: Walls Blue
+    Cmds:
+      - color walls strong-blue
+  studio-52:
+    Text: Studio 52
+    Cmds:
+      - color downs ff8a33
+      - color ups 6c32fe
+      - color fire ff0121
+      - color huns ff0648
+      - color decks fe319f
+      - color bed fe274f
+  jade-chamber:
+    Text: Jade Chamber
+    Cmds:
+      - color walls jade
+      - color downs copper
+  fire-but-gay:
+    Text: Fire, but Gay
+    Cmds:
+      - color downs strong-pink
+      - color ups ff7f27
+      - color decksb vermillion
+      - color decks1 burnt-orange
+      - color decks2 burnt-orange
+      - color fire burnt-orange
+      - color huns vermillion
+      - color bed burnt-orange
+  bisensuality:
+    Text: bisensuality
+    Cmds:
+      - color downs indigo
+      - color walls violet
+      - color ups ultramarine
+      - color huns ultramarine
+      - color decks1 dark-violet
+      - color decks2 dark-violet
+      - color decksb cranberry
+  go-deep:
+    Text: "> GO DEEP <"
+    Cmds:
+      - color decks royal-blue
+      - color ups prussian-blue
+      - color huns prussian-blue
+      - color fire aqua-green
+      - color downs aqua-green
+      - color bed burnt-yellow
+  baldurs-gay:
+    Text: "Baldur's Gay"
+    Cmds:
+      - color walls crimson
+      - color downs blood-red
+  yes-xand:
+    Text: Yes, Xand
+    Cmds:
+      - color walls orange
+      - color ups electric-pink
+      - color downs orangish-red
+      - color huns electric-pink
+  decks-trans:
+    Text: Decks Trans
+    Cmds:
+      - color decksb1 red
+      - color decksb5 red
+      - color decks-o nice-blue
+      - color decks-i bubblegum
+      - color decks-m white
+  decks-bi-1:
+    Text: Decks Bisexual 1
+    Cmds:
+      - color decks-l strong-pink 6s
+      - color decks-r strong-blue 6s
+      - color decks-m aubergine 6s
+  decks-bi-2:
+    Text: Decks Bisexual 2
+    Cmds:
+      - color decks-r strong-pink 6s
+      - color decks-l strong-blue 6s
+      - color decks-m aubergine 6s
+
+# Chase is a list of steps with a unique slug and a friendly name. Each step can
+# run multiple commands (switch, dim, color, cue) and should include a wait.
+Chase:
+  wall-soft:
+    Text: Wall Soft
+    Steps:
+      -
+        - dim walls 100 6s
+        - wait 7s
+      -
+        - dim walls 80 6s
+        - wait 7s
+  down-soft:
+    Text: Downs Soft
+    Steps:
+      -
+        - dim downs 30 12s
+        - wait 13s
+      -
+        - dim walls 10 12s
+        - wait 13s
+  walls-out:
+    Text: Walls, Out
+    Steps:
+      -
+        - dim walls 80
+        - wait 4s
+      -
+        - dim decksb 100
+        - wait 1s
+      -
+        - dim decks1 100
+        - dim decks2 100
+        - wait 1s
+      -
+        - dim up3 100
+        - dim up4 100
+        - wait 1s
+      -
+        - dim up3 100
+        - dim up4 100
+        - wait 1s
+      -
+        - dim up1 100
+        - dim up2 100
+        - wait 1s
+      -
+        - dim fire 100
+        - wait 1s
+      -
+        - dim huns 100
+        - wait 1s
+      -
+        - dim bed 100
+        - wait 6s
+  downs-in:
+    Text: Downs, In
+    Steps:
+      -
+        - dim downs 10
+        - wait 4s
+      -
+        - dim down01 30
+        - dim down02 30
+        - wait 1s
+      -
+        - dim down03 30
+        - dim down04 30
+        - wait 1s
+      -
+        - dim down05 30
+        - dim down06 30
+        - wait 1s
+      -
+        - dim down07 30
+        - dim down08 30
+        - wait 1s
+      -
+        - dim down09 30
+        - dim down10 30
+        - wait 6s
+  downs-vv:
+    Text: Downs VV
+    Steps:
+      -
+        - dim downs 10
+        - wait 4s
+      -
+        - dim downs-v1 30
+        - wait 4s
+      -
+        - dim downs 10
+        - wait 4s
+      -
+        - dim downs-v2 30
+        - wait 4s
+  downs-vv-blue-red:
+    Text: Downs VV Blue/Red
+    Steps:
+      -
+        - color downs-v1 cranberry 6s
+        - color downs-v2 strong-blue 6s
+        - wait 9s
+      -
+        - color downs-v1 strong-blue 6s
+        - color downs-v2 cranberry 6s
+        - wait 9s
+  decks-flag:
+    Text: Decks Flag
+    Steps:
+      -
+        - cue decks-trans
+        - wait 13s
+      -
+        - cue decks-bi-1
+        - wait 17s
+      -
+        - cue decks-bi-2
+        - wait 17s
+      -
+        - cue decks-trans
+        - wait 13s
+      -
+        - cue decks-bi-2
+        - wait 17s
+      -
+        - cue decks-bi-1
+        - wait 17s
+
+# Sheet is a list of sections of groups of buttons describing the index page
+# rendered by discod. Each button may reference a cue or a chase.
+Sheet:
+  - Text: Main
+    Group:
+      -
+        - Cue: all-off
+      -
+        - Cue: light-on
+        - Cue: light-off
+      -
+        - Cue: sound-on
+        - Cue: sound-off
+      -
+        - Cue: mb-on
+        - Cue: mb-off
+  - Text: Dimming
+    Group:
+      -
+        - Cue: all-100
+      -
+        - Cue: down-5
+        - Cue: down-25
+        - Cue: down-50
+        - Cue: down-100
+      -
+        - Cue: wall-50
+        - Cue: wall-100
+  - Text: Color
+    Group:
+      -
+        - Cue: downs-red
+        - Cue: downs-pink
+        - Cue: downs-blue
+      -
+        - Cue: walls-red
+        - Cue: walls-pink
+        - Cue: walls-blue
+      -
+        - Cue: ups-ultra
+        - Cue: ups-aubergine
+        - Cue: ups-raspberry
+        - Cue: ups-tangerine
+      -
+        - Cue: fire-crimson
+        - Cue: fire-brick-red
+        - Cue: fire-plum
+        - Cue: fire-terracotta
+      -
+        - Cue: huns-azul
+        - Cue: huns-ruby
+      -
+        - Cue: bed-candy-pink
+        - Cue: bed-cinnamon
+        - Cue: bed-sapphire
+        - Cue: bed-terracotta
+  - Text: Scene
+    Group:
+      -
+        - Cue: studio-52
+        - Cue: jade-chamber
+        - Cue: fire-but-gay
+      -
+        - Cue: bisensuality
+        - Cue: go-deep
+        - Cue: baldurs-gay
+      -
+        - Cue: yes-xand
+      -
+        - Cue: decks-trans
+        - Cue: decks-bi-1
+        - Cue: decks-bi-2
+  - Text: Chase
+    Group:
+      -
+        - Chase: wall-soft
+        - Chase: down-soft
+      -
+        - Chase: walls-out
+        - Chase: downs-in
+      -
+        - Chase: downs-vv
+        - Chase: downs-vv-blue-red
+      -
+        - Chase: decks-flag

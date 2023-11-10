@@ -1,2 +1,320 @@
 # disco
-Domestic Illumination System Control Operator
+
+```
++----------------------------------------------------------------------+
+|           ===========   =====  ==========   ========     ========    |
+|           ===     ===   ===  ===      ==  ===    ===   ===    ===    |
+|          ===      ===  ===  ====        ===          ===      ===    |
+|         ===      ===  ===   ====       ===          ===      ===     |
+|        ===      ===  ===     =====    ===          ===      ===      |
+|       ===      ===  ===        ====  ===          ===      ===       |
+|      ===      ===  ===         ==== ===          ===      ===        |
+|     ===     ===   ===  ==      ===  ===    ===   ===    ===          |
+|   ===========   ===== ==========    ========     ========            |
++----------------------------------------------------------------------+
+|            Domestic Illumination System Control Operator             |
++----------------------------------------------------------------------+
+```
+
+
+## about
+
+DISCO is a system for controlling home lighting. At the core is a text protocol
+that can talk to multiple backends (Phillips Hue and LIFX LAN at this stage).
+
+At the front is a command line tool (`disco`) and a web server (`discod`).
+
+Both `disco` and `discod` are configured by a single yaml file (`disco.yml`).
+
+**These tools are absolutely not production ready.** They may never be. I wrote
+this for a pet project and I'm sharing it because I think it's fun.
+
+
+## dedication
+
+This repository contains some of the best and the worst code I have ever
+written. It is dedicated to my mentor, who helped me grow from someone who
+can code to a real engineer. We didn't get enough time together. May your
+goroutines never deadlock in heaven my friend.
+
+
+## package layout
+
+```
+.
+├── bin                # build and deploy scripts
+├── cmd
+│   ├── color          # playground for poking at the color package, may or may not build
+│   ├── disco          # command line tool
+│   ├── discod         # web server
+│   ├── hue            # playground for poking at the hue package, may or may not build
+│   └── lifx           # playground for poking at the lifx package, may or may not build
+├── color              # color conversion utilities
+├── disco.example.yml  # example configuration file
+├── disco.go           # core text protocol
+├── hue                # thin wrapper over hue api
+├── huecmd             # translation layer between text protocol and hue
+├── lifx               # thin-ish? lifx lan client
+└── lifxcmd            # translation layer between text protocol and lifx
+```
+
+## text protocol
+
+At the center of everything is the command (`Cmd`).
+
+```go
+type Cmd struct {
+	Action string
+	Target string
+	Args   []string
+}
+```
+
+A command comprises an `Action` (what I want to do), a `Target` (what I want
+to do it to), and one or more `Args` to describe the action.
+
+
+### switch, dim, color
+
+There are three core actions:
+- `switch`
+- `dim`
+- `color`
+
+Meaning, I want to switch a device on or off (`switch light1 on`), I want
+to dim the brightness to a certain level `[0,100]` (`dim light1 50`), or I
+want to set the color to an RGB hex value (`color light1 ff0000`). Just for
+fun, the color command understands the xkcd color survey names so I can
+`color light1 raspberry`.
+
+There is some nuance to color setting, as we are working with lamps not
+monitors.  Under the hood, the brightness values are stripped out and colors
+are always set as though they were maximum brightness. I find RGB values
+much easier to comprehend than HSV or XY so we stick to that space and accept
+that some colors in the low brightness range will not appear as expected.
+
+This feels a little strange at first but the result is we have decoupled color
+from brightness (dimming) so the `dim` and `color` commands are independent.
+
+The core commands can be used to set and get state. For example,
+`switch light1` will return the state of `light1` in the form of a switch
+command. Passing the command `switch` with no target will return the state
+of all switches.
+
+
+#### timing
+
+The `dim` and `color` commands support a second arg which is a time duration.
+Example `dim light1 50 6s`. The default duration is `3s`, which any lighting
+tech will tell you is a standard fade. Getting durations to work with the
+switch command ended up being very messy as the backends behave differently
+and we would have to start holding state to make it work sensibly. Pass.
+
+
+#### decomposition of targets
+
+Some devices, such as the hue gradient lightstrip, have multiple color
+zones but only one switch and dimmer. DISCO represents each color zone as
+a separate device that can be targeted with the `color` command. We lose a
+little flexibility as hue allows one to five colors to be set on the strip
+but we only accept either one (the whole strip) or one of the five zones in
+one command. It's a sacrifice I'm willing to make for the sake of simplicity.
+
+
+### prefix, map, link
+
+The hue and lifx packages refer to devices by ID. The hue and lifx apps
+can give their own friendly names to lights and that's nice for them but I
+didn't feel like plumbing all that through. In the interest of simplicity,
+all of DISCO's configuration is completely static in `disco.yml`.
+
+IDs from the backends are prefixed into their own namespaces for clarity and to
+avoid collisions if two backends happened to use the same ID scheme in future.
+
+So a hue device with id `ae5cdf75-fe52-4f1c-8e6e-cb4ad3786085` will appear as
+`hue/ae5cdf75-fe52-4f1c-8e6e-cb4ad3786085`.
+
+Which brings us to the `Map`, a simple text map that allows us to give
+friendly names to devices. We can add
+
+```yaml
+Map:
+  hue/ae5cdf75-fe52-4f1c-8e6e-cb4ad3786085: light1
+```
+
+to the config and now we can refer to the device as `light1`. Easy.
+
+The `Link` lets us group devices together.
+
+```yaml
+Link:
+  lights: [light1, light2, light3]
+  more: [light4, light5, light6]
+  all: [lights, more]
+```
+
+Links can refer to other links. The implementation for this is iterative
+and loops over commands until all links are resolved.
+
+**Footgun** there is no detection for circular links so watch out. You have
+been warned.
+
+
+### cue
+
+A `Cue` is a command that expands to one or more commands, with a slug and
+a friendly name for the Web UI.
+
+```yaml
+Cue:
+  light-on:
+    Text: Light On
+    Cmds:
+      - switch all on
+```
+
+Cue is also a command, so the command line can run `cue light-on`. Cues can
+reference other cues.
+
+**Footgun** there is no detection for a circular cue reference. It would not
+end well.
+
+
+### chase
+
+Now we're getting serious. A `Chase` is a sequence of steps of one or more
+commands, each of which should include a `wait` before the next step. Chases
+loop forever until they are stopped.
+
+```yaml
+Chase:
+  all-soft:
+    Text: All Soft
+    Steps:
+      -
+        - dim all 100 6s
+        - wait 7s
+      -
+        - dim all 80 6s
+        - wait 7s
+```
+
+Chases only work in the web interface, for now. A chase is not a command and
+chases _cannot_ reference other chases. Can you imagine. I would rather not.
+
+
+### sheet
+
+The sheet is the last piece of configuration and describes the web page
+displayed by `discod`. The interface consists of groups of buttons divided
+into sections. That is all. A button may reference a `Cue` or a `Chase`.
+
+For example
+
+```yaml
+Sheet:
+  - Text: Main
+    Group:
+      -
+        - Cue: all-on
+  - Text: Chase
+    Group:
+      -
+        - Chase: all-soft
+```
+
+
+## discod
+
+The web server is very simple. It renders an html page of buttons according
+to the configuration of the `Sheet`. Following the sheet is an unordered
+list of any running chases with a button to stop them.
+
+Cues are sent to the `/cue/{name}` endpoint and handled by the cue handler,
+which returns a 204 No Content.
+
+Chases are sent to the `/chase/{name}` endpoint and handled by the chase
+handler which returns a 302 Found to `/`. The `/chase/{name}/stop` endpoint
+will stop a chase.
+
+The webserver is fully self-contained, no frameworks, no javascript, serves
+its own font and has a manifest allowing it to be added to the home screen
+as a web app.
+
+`/bin/discod.sh` is an example deploy script over ssh to a server which makes
+some assumptions (running discod as a runit service and non privileged user).
+
+Running a deploy stops the service momentarily and kills any running chases.
+If you need zero downtime in your home setup I'm sure you can figure
+something out...
+
+
+## design principles
+
+The whole system runs without ever calling out to the internet. No internet
+outage will stop the DISCO.
+
+Highly opinionated. Built for engineers. Easy to operate. The only things
+the web interface can do must be codified into the `disco.yml`. In practice
+this works just fine. You don't need a slider to dim the lights. Just pick
+a few sensible settings and expose them.
+
+No state. Mostly no state. The only state we hold in memory are the running
+chases.
+
+Good neighbor. The system can be used in conjunction with the hue and lifx
+apps without any ill effects.
+
+
+## what's missing
+
+Oh so many things.
+
+### validation of literally anything
+
+There is some assumption if you made it this far you know what you're doing.
+
+### tests
+
+Test coverage of the color conversion utilities is decent. That's hardcore
+stuff and it needs to be rock solid. Tests for everything else... let's call
+that a later problem.
+
+### cue timing
+
+It might be nice to accept a time duration for the `cue` command and have it
+override the timing of the commands within.
+
+### hue bridge discovery
+
+Just give it a static IP and a local DNS name.
+
+### hue bridge registration
+
+The hue docs explain how to do this. If I were to implement it it would likely
+go into a command line tool.
+
+### hue secret key
+
+The hue api key should be handled as a secret and not a field in `disco.yml`.
+
+### hue https
+
+We're rolling `InsecureSkipVerify` for now. Phillip's https api is not fully
+rolled out and my older bridge uses a self signed cert and this all seems like
+a later problem.
+
+### hue and lifx device registration
+
+The manufacturer's apps are fine for this.
+
+### device support
+
+At the moment, DISCO supports hue plug, hue color bulbs, hue lightstrip and
+gradient lightstrip, lifx color bulbs. Extending support to other devices
+is certainly possible, but I don't own any (hint hint, anyone from Phillips
+or LIFX reading this :wink:).
+
+There is no support for white/color temperature at this stage. RGB color
+values are packed into a uint32 so we could potentially use the last 8 bits
+for color temp.

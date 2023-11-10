@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="disco.css">
+<link rel="manifest" href="manifest.json" />
+<title>DISCO</title>
+</head>
+<body>
+{{- range .Sheet -}}
+<div>
+    <p>{{- .Text -}}</p>
+    <div>
+    {{- range .Group -}}
+    <div>
+        {{- range . -}}
+        {{- if .Cue -}}
+        <form action="/cue/{{- .Cue -}}" method="post">
+            <input type="submit" value="{{- $.Cue .Cue -}}">
+        </form>
+        {{- end -}}
+        {{- if .Chase -}}
+        <form action="/chase/{{- .Chase -}}" method="post">
+            <input type="submit" value="{{- $.Chase .Chase -}}">
+        </form>
+        {{- end -}}
+        {{- end -}}
+    </div>
+    {{- end -}}
+    </div>
+</div>
+{{- end -}}
+{{- with .Chasing -}}
+<div>
+    <p>Chasing</p>
+<ul>
+    {{- range . -}}
+    <li>
+         <span>{{- $.Chase . -}}</span>
+         <form action="/chase/{{- . -}}/stop" method="post">
+             <input type="submit" value="stop">
+         </form>
+    </li>
+    {{- end -}}
+</ul>
+</div>
+{{- end -}}
+</body>
+</html>
