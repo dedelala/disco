@@ -19,10 +19,10 @@
 
 ## about
 
-DISCO is a system for controlling home lighting. At the core is a text protocol
+DISCO is a system for controlling home lighting. It's a text protocol
 that can talk to multiple backends (Phillips Hue and LIFX LAN at this stage).
 
-At the front is a command line tool (`disco`) and a web server (`discod`).
+A command line tool (`disco`) and a web server (`discod`) lie within.
 
 Both `disco` and `discod` are configured by a single yaml file (`disco.yml`).
 
@@ -33,8 +33,8 @@ this for a pet project and I'm sharing it because I think it's fun.
 ## dedication
 
 This repository contains some of the best and the worst code I have ever
-written. It is dedicated to my mentor, who helped me grow from someone who
-can code to a real engineer. We didn't get enough time together. May your
+written. It is dedicated to my mentor, who helped me grow from a person who
+can code to an engineer. We didn't get enough time together. May your
 goroutines never deadlock in heaven my friend.
 
 
@@ -44,11 +44,11 @@ goroutines never deadlock in heaven my friend.
 .
 ├── bin                # build and deploy scripts
 ├── cmd
-│   ├── color          # playground for poking at the color package, may or may not build
+│   ├── color          # playground for the color package, may or may not build
 │   ├── disco          # command line tool
 │   ├── discod         # web server
-│   ├── hue            # playground for poking at the hue package, may or may not build
-│   └── lifx           # playground for poking at the lifx package, may or may not build
+│   ├── hue            # playground for the hue package, may or may not build
+│   └── lifx           # playground for the lifx package, may or may not build
 ├── color              # color conversion utilities
 ├── disco.example.yml  # example configuration file
 ├── disco.go           # core text protocol
@@ -60,7 +60,7 @@ goroutines never deadlock in heaven my friend.
 
 ## text protocol
 
-At the center of everything is the command (`Cmd`).
+In the beginning is the command.
 
 ```go
 type Cmd struct {
@@ -71,12 +71,12 @@ type Cmd struct {
 ```
 
 A command comprises an `Action` (what I want to do), a `Target` (what I want
-to do it to), and one or more `Args` to describe the action.
+to do it to), and one or more `Args` or parameters (what am I doing).
 
 
 ### switch, dim, color
 
-There are three core actions:
+At first, there are three actions:
 - `switch`
 - `dim`
 - `color`
@@ -88,63 +88,84 @@ fun, the color command understands the xkcd color survey names so I can
 `color light1 raspberry`.
 
 There is some nuance to color setting, as we are working with lamps not
-monitors.  Under the hood, the brightness values are stripped out and colors
+monitors. Under the hood, the brightness values are stripped out and colors
 are always set as though they were maximum brightness. I find RGB values
 much easier to comprehend than HSV or XY so we stick to that space and accept
 that some colors in the low brightness range will not appear as expected.
 
-This feels a little strange at first but the result is we have decoupled color
-from brightness (dimming) so the `dim` and `color` commands are independent.
+This feels a little strange at first but it's workable. The result is we have
+decoupled color from brightness (dimming) so the `dim` and `color` commands are
+orthogonal.
 
-The core commands can be used to set and get state. For example,
-`switch light1` will return the state of `light1` in the form of a switch
-command. Passing the command `switch` with no target will return the state
-of all switches.
+### get state
 
+A command with no args is a getter. It is asking what the args would be for that
+action and target. The response takes the form of a command.
+
+```sh
+> disco switch light1
+switch light1 on
+```
+
+The target can be omitted to get everything.
+
+```sh
+> disco switch
+switch light1 on
+switch light2 off
+switch light3 off
+...
+```
 
 #### timing
 
 The `dim` and `color` commands support a second arg which is a time duration.
 Example `dim light1 50 6s`. The default duration is `3s`, which any lighting
-tech will tell you is a standard fade. Getting durations to work with the
-switch command ended up being very messy as the backends behave differently
-and we would have to start holding state to make it work sensibly. Pass.
+tech will tell you is a standard fade.
+
+I tried setting durations on the switch command and it didn't end well. So the
+switch is instantaneous. Which is fine, that is how we expect a switch to
+behave.
 
 
 #### decomposition of targets
 
-Some devices, such as the hue gradient lightstrip, have multiple color
-zones but only one switch and dimmer. DISCO represents each color zone as
-a separate device that can be targeted with the `color` command. We lose a
-little flexibility as hue allows one to five colors to be set on the strip
-but we only accept either one (the whole strip) or one of the five zones in
-one command. It's a sacrifice I'm willing to make for the sake of simplicity.
+The backends decompose devices into zero or more targets applicable to each
+of the three actions. So a smart plug that has no dimming or color capability
+will only be addressable by the switch command. A hue gradient lightstrip
+with one switch, one dimmer, and 5 color zones presents those
+accordingly.
+
+I have made some sacrifices to the flexibility of controlling some devices
+to suit simplicity and I am happy the system does everything I want it to do.
 
 
 ### prefix, map, link
 
-The hue and lifx packages refer to devices by ID. The hue and lifx apps
-can give their own friendly names to lights and that's nice for them but I
+The hue and lifx packages refer to devices by ID. The hue and lifx backends
+have their own friendly names for lights and that's nice for them but I
 didn't feel like plumbing all that through. In the interest of simplicity,
 all of DISCO's configuration is completely static in `disco.yml`.
 
-IDs from the backends are prefixed into their own namespaces for clarity and to
-avoid collisions if two backends happened to use the same ID scheme in future.
+To the backends, the target is a device ID.
 
-So a hue device with id `ae5cdf75-fe52-4f1c-8e6e-cb4ad3786085` will appear as
-`hue/ae5cdf75-fe52-4f1c-8e6e-cb4ad3786085`.
+IDs from the backends are prefixed into namespaces for clarity and to avoid
+collisions if two backends happened to use the same ID scheme in future.
+
+DISCO will represent a hue device with id `ae5cdf75-fe52-4f1c-8e6e-cb4ad3786085`
+with a prefix like this `hue/ae5cdf75-fe52-4f1c-8e6e-cb4ad3786085`.
 
 Which brings us to the `Map`, a simple text map that allows us to give
-friendly names to devices. We can add
+friendly names to devices.
 
 ```yaml
 Map:
   hue/ae5cdf75-fe52-4f1c-8e6e-cb4ad3786085: light1
 ```
 
-to the config and now we can refer to the device as `light1`. Easy.
+With this in the config and we can refer to the device as `light1`. Easy.
 
-The `Link` lets us group devices together.
+The `Link` is for grouping devices together.
 
 ```yaml
 Link:
@@ -153,8 +174,19 @@ Link:
   all: [lights, more]
 ```
 
-Links can refer to other links. The implementation for this is iterative
-and loops over commands until all links are resolved.
+When a link target is expanded, the original command is rewritten into one
+command for each target that is linked.
+
+For example, `switch lights on` becomes
+
+```
+switch light1 on
+switch light2 on
+switch light3 on
+```
+
+Links can link links. The implementation for this is iterative and loops over
+commands until all links are resolved.
 
 **Footgun** there is no detection for circular links so watch out. You have
 been warned.
@@ -162,8 +194,7 @@ been warned.
 
 ### cue
 
-A `Cue` is a command that expands to one or more commands, with a slug and
-a friendly name for the Web UI.
+A `Cue` is slice of command with a slug and a friendly name for the Web UI.
 
 ```yaml
 Cue:
@@ -173,18 +204,17 @@ Cue:
       - switch all on
 ```
 
-Cue is also a command, so the command line can run `cue light-on`. Cues can
-reference other cues.
+Cue is also a command action, with this config in place we can run
+`disco cue light-on`. Cues can cue cues.
 
-**Footgun** there is no detection for a circular cue reference. It would not
-end well.
+**Footgun** there is no detection for a circular cue reference. Please, do not.
 
 
 ### chase
 
-Now we're getting serious. A `Chase` is a sequence of steps of one or more
-commands, each of which should include a `wait` before the next step. Chases
-loop forever until they are stopped.
+Now we're getting serious. A `Chase` is a slice of slices of command. Each of
+which should include a `wait` before the next step. The `wait` action is only
+applicable in a chase. Chases loop forever until they are stopped.
 
 ```yaml
 Chase:
@@ -199,15 +229,15 @@ Chase:
         - wait 7s
 ```
 
-Chases only work in the web interface, for now. A chase is not a command and
-chases _cannot_ reference other chases. Can you imagine. I would rather not.
+Chases only run in `discod`, for now. A chase is not a command action and
+chases _cannot_ chase chases. Can you imagine.
 
 
 ### sheet
 
-The sheet is the last piece of configuration and describes the web page
-displayed by `discod`. The interface consists of groups of buttons divided
-into sections. That is all. A button may reference a `Cue` or a `Chase`.
+The cue sheet is the last piece of configuration and describes the web page
+displayed by `discod`. The interface comprises groups of buttons divided
+into sections. That is all. A button may call a `Cue` or a `Chase`.
 
 For example
 
@@ -228,7 +258,7 @@ Sheet:
 
 The web server is very simple. It renders an html page of buttons according
 to the configuration of the `Sheet`. Following the sheet is an unordered
-list of any running chases with a button to stop them.
+list of running chases with a button to stop them.
 
 Cues are sent to the `/cue/{name}` endpoint and handled by the cue handler,
 which returns a 204 No Content.
@@ -250,6 +280,8 @@ something out...
 
 
 ## design principles
+
+Simple. Expressive. Robust. Effective.
 
 The whole system runs without ever calling out to the internet. No internet
 outage will stop the DISCO.
