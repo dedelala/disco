@@ -38,6 +38,21 @@ can code to an engineer. We didn't get enough time together. May your
 goroutines never deadlock in heaven my friend.
 
 
+## attribution
+
+The [XKCD Color Survey](https://xkcd.com/color/rgb/) results were used to
+create `color/xkcd.go` and are licensed under
+[CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
+
+The Noto Sans Mono font served by the web ui belongs to the
+[Noto Project Authors](https://github.com/notofonts) and is provided under the
+[SIL Open Font License](http://scripts.sil.org/OFL).
+
+The web ui favicon was generated using [favicon.io](https://favicon.io). The
+font used is Leckerli One by [Gesine Todt](www.gesine-todt.de) also under the
+[SIL Open Font License](http://scripts.sil.org/OFL).
+
+
 ## package layout
 
 ```
