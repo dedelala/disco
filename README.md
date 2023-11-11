@@ -20,7 +20,9 @@
 ## about
 
 DISCO is a system for controlling home lighting. It's a text protocol
-that can talk to multiple backends (Phillips Hue and LIFX LAN at this stage).
+that can talk to multiple backends
+([Phillips Hue](https://developers.meethue.com/) and
+[LIFX LAN](https://lan.developer.lifx.com/docs) at this stage).
 
 A command line tool (`disco`) and a web server (`discod`) lie within.
 
