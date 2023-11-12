@@ -205,7 +205,7 @@ switch light3 on
 Links can link links. The implementation for this is iterative and loops over
 commands until all links are resolved.
 
-**Footgun** there is no detection for circular links so watch out. You have
+There is no detection for circular links so watch out. You have
 been warned.
 
 
@@ -224,7 +224,7 @@ Cue:
 Cue is also a command action, with this config in place we can run
 `disco cue light-on`. Cues can cue cues.
 
-**Footgun** there is no detection for a circular cue reference. Please, do not.
+There is no detection for a circular cue reference. Please, do not.
 
 
 ### chase

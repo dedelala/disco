@@ -1,5 +1,13 @@
 #!/bin/bash
 
+#
+# discod.sh
+# builds discod for arm64 and ships with disco.yml to remote host over scp
+#
+# this works if your remote host allows all this to run, has runit, with a
+# service discod that calls /usr/local/bin/discod
+#
+
 die() { printf "that ain't it, %s" "$*"; exit 7; }
 
 if ! [[ $(head -n1 go.mod) == "module github.com/dedelala/disco" ]]; then
