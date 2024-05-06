@@ -156,10 +156,10 @@ func main() {
 	}
 	l := lifxcmd.Cmdr{Client: lc}
 
-	cmdr := disco.WithCue(disco.WithLink(disco.WithMap(disco.Cmdrs{
+	cmdr := disco.WithCue(disco.WithSplay(disco.WithLink(disco.WithMap(disco.Cmdrs{
 		disco.WithPrefix(h, "hue/"),
 		disco.WithPrefix(l, "lifx/"),
-	}, cfg.Map), cfg.Link), cfg.Cue)
+	}, cfg.Map), cfg.Link), cfg.Link), cfg.Cue)
 
 	fs := logHandler{http.FileServer(http.FS(files))}
 	http.Handle("/NotoSansMono-VariableFont_wdth,wght.ttf", fs)

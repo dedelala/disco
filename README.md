@@ -138,7 +138,7 @@ switch light3 off
 
 The `dim` and `color` commands support a second arg which is a time duration.
 Example `dim light1 50 6s`. The default duration is `3s`, which any lighting
-tech will tell you is a standard fade.
+operator will tell you is a standard fade.
 
 I tried setting durations on the switch command and it didn't end well. So the
 switch is instantaneous. Which is fine, that is how we expect a switch to

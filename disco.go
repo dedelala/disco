@@ -6,16 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/dedelala/disco/color"
 	"github.com/dedelala/disco/hue"
 	"github.com/dedelala/disco/lifx"
+	"github.com/ghodss/yaml"
 )
 
 type Config struct {
@@ -277,6 +278,47 @@ func (l Linker) Cmd(cmds []Cmd) ([]Cmd, error) {
 		cmds = links
 	}
 	return l.Cmdr.Cmd(cmds)
+}
+
+type Splay struct {
+	Cmdr
+	L map[string][]string
+}
+
+func WithSplay(c Cmdr, l map[string][]string) Splay {
+	return Splay{c, l}
+}
+
+func (s Splay) Cmd(cmds []Cmd) ([]Cmd, error) {
+	var splays []Cmd
+	for _, cmd := range cmds {
+		if cmd.Action != "splay" && cmd.Action != "shuffle" {
+			continue
+		}
+		targets := s.L[cmd.Target]
+		first, err := ParseColor(cmd.Args[0])
+		if err != nil {
+			return nil, err
+		}
+		last, err := ParseColor(cmd.Args[1])
+		if err != nil {
+			return nil, err
+		}
+		colors := color.Seq(first, last, len(targets))
+		if cmd.Action == "shuffle" {
+			rand.Shuffle(len(colors), func(i, j int) {
+				colors[i], colors[j] = colors[j], colors[i]
+			})
+		}
+		for i := 0; i < len(targets); i++ {
+			splays = append(splays, ColorCmd(targets[i], colors[i]))
+		}
+	}
+	slices.DeleteFunc(cmds, func(cmd Cmd) bool {
+		return cmd.Action == "splay" || cmd.Action == "shuffle"
+	})
+	cmds = append(cmds, splays...)
+	return s.Cmdr.Cmd(cmds)
 }
 
 type Mapper struct {
