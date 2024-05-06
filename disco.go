@@ -311,7 +311,11 @@ func (s Splay) Cmd(cmds []Cmd) ([]Cmd, error) {
 			})
 		}
 		for i := 0; i < len(targets); i++ {
-			splays = append(splays, ColorCmd(targets[i], colors[i]))
+			c := ColorCmd(targets[i], colors[i])
+			if len(cmd.Args) > 2 {
+				c.Args = append(c.Args, cmd.Args[2:]...)
+			}
+			splays = append(splays, c)
 		}
 	}
 	slices.DeleteFunc(cmds, func(cmd Cmd) bool {
