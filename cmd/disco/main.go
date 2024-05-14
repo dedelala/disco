@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"sort"
@@ -31,8 +32,9 @@ func colorStdout(cmd disco.Cmd) string {
 }
 
 type flags struct {
-	config string
-	watch  bool
+	config   string
+	watch    bool
+	logLevel slog.Level
 }
 
 func main() {
@@ -45,7 +47,11 @@ func main() {
 
 	flag.StringVar(&f.config, "c", configDir+"disco.yml", "path to config `file`")
 	flag.BoolVar(&f.watch, "w", false, "watch for changes")
+	flag.TextVar(&f.logLevel, "v", f.logLevel, "log `level`")
 	flag.Parse()
+
+	lh := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: f.logLevel})
+	slog.SetDefault(slog.New(lh))
 
 	cfg, err := disco.Load(f.config)
 	if err != nil {

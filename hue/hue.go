@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -146,7 +146,7 @@ func (h *Client) Watch(ctx context.Context) (<-chan Event, error) {
 			var es []Event
 			err := json.Unmarshal([]byte(line), &es)
 			if err != nil {
-				log.Printf("Error: hue: listen: %s", err)
+				slog.Error("hue decoding events", "error", err)
 			}
 			for _, e := range es {
 				events <- e

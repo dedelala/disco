@@ -13,6 +13,10 @@ li, li > form, li > input, li > span {
     font-size: x-large;
 }
 
+pre {
+    font-size: large;
+}
+
 ul {
     list-style: hiragana;
 }

@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"maps"
 	"net"
 	"time"
@@ -71,7 +71,7 @@ func New(c Config) (*Client, error) {
 		for {
 			p, err := l.rx()
 			if err != nil {
-				log.Printf("Error: rx: %s", err)
+				slog.Error("lifx rx", "error", err)
 			}
 			sp(p)
 		}
@@ -404,7 +404,7 @@ func (l *Client) discoverRx(rx <-chan *packet) {
 		select {
 		case p, ok := <-rx:
 			if !ok {
-				log.Print("Warning: lifx discover: channel closed!")
+				slog.Warn("lifx discover: channel closed!")
 				return
 			}
 			if p.ptype != devStateService {
@@ -412,18 +412,18 @@ func (l *Client) discoverRx(rx <-chan *packet) {
 			}
 			host, _, err := net.SplitHostPort(p.addr.String())
 			if err != nil {
-				log.Printf("Warning: lifx discover: %s", err)
+				slog.Warn("lifx discover", "error", err)
 				continue
 			}
 			pld, ok := p.payload.(*servicePayload)
 			if !ok {
-				log.Print("Warning: lifx discover: bad payload")
+				slog.Warn("lifx discover: bad payload")
 				continue
 			}
 			s := fmt.Sprintf("%s:%d", host, pld.port)
 			a, err := net.ResolveUDPAddr("udp", s)
 			if err != nil {
-				log.Printf("Warning: lifx discover: %s", err)
+				slog.Warn("lifx discover", "error", err)
 				continue
 			}
 			addrs[p.target] = a

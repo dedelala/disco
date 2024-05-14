@@ -8,8 +8,11 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
+	"sync"
 
 	"github.com/dedelala/disco"
 	"github.com/dedelala/disco/hue"
@@ -48,7 +51,8 @@ func (h pageHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var bb bytes.Buffer
 	err := h.Execute(&bb, h.page)
 	if err != nil {
-		Error(w, err, http.StatusInternalServerError)
+		slog.Error(err.Error())
+		http.Error(w, fmt.Sprintf("Error: %s", err), http.StatusInternalServerError)
 		return
 	}
 	io.Copy(w, &bb)
@@ -65,8 +69,7 @@ func (h cueHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	_, err := h.Cmd([]disco.Cmd{cmd})
 	if err != nil {
-		Error(w, err, http.StatusInternalServerError)
-		return
+		slog.Error(err.Error())
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -93,8 +96,13 @@ func (h logHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	lw := &statusLogger{
 		ResponseWriter: w,
 		ok:             true,
-		log: func(v any) {
-			log.Printf("%s %v %s %s", req.RemoteAddr, v, req.Method, req.URL)
+		log: func(status int) {
+			slog.Info("handled",
+				"addr", req.RemoteAddr,
+				"status", status,
+				"method", req.Method,
+				"url", req.URL,
+			)
 		},
 	}
 	h.Handler.ServeHTTP(lw, req)
@@ -106,23 +114,51 @@ func (h logHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 type statusLogger struct {
 	http.ResponseWriter
 	ok  bool
-	log func(any)
+	log func(int)
 }
 
-func (w *statusLogger) WriteHeader(code int) {
+func (w *statusLogger) WriteHeader(status int) {
 	w.ok = false
-	w.ResponseWriter.WriteHeader(code)
-	w.log(code)
+	w.ResponseWriter.WriteHeader(status)
+	w.log(status)
 }
 
-func Error(w http.ResponseWriter, err error, code int) {
-	s := fmt.Sprintf("Error: %s", err)
-	log.Print(s)
-	http.Error(w, s, code)
+type logTailHandler struct {
+	*template.Template
+	logs  []byte
+	lines int
+	mu    *sync.RWMutex
+}
+
+func (h *logTailHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	h.mu.RLock()
+	logs := bytes.Clone(h.logs)
+	h.mu.RUnlock()
+	var bb bytes.Buffer
+	err := h.Execute(&bb, string(logs))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error: %s", err), http.StatusInternalServerError)
+		return
+	}
+	io.Copy(w, &bb)
+}
+
+func (h *logTailHandler) Write(p []byte) (n int, err error) {
+	h.mu.Lock()
+	h.lines += bytes.Count(p, []byte{'\n'})
+	h.logs = append(h.logs, p...)
+	for h.lines > 1000 {
+		_, h.logs, _ = bytes.Cut(h.logs, []byte{'\n'})
+		h.lines--
+	}
+	h.mu.Unlock()
+	return len(p), nil
 }
 
 //go:embed *.html *.css *.ttf *.png *.ico *.json
 var files embed.FS
+
+var logLevel = new(slog.LevelVar)
 
 type flags struct {
 	config string
@@ -132,19 +168,39 @@ type flags struct {
 func main() {
 	var f flags
 	flag.StringVar(&f.config, "c", "/etc/disco.yml", "path to config `file`")
-	flag.StringVar(&f.listen, "l", ":80", "listen `addr`ess")
+	flag.StringVar(&f.listen, "l", ":80", "listen `address`")
+	flag.TextVar(logLevel, "v", logLevel, "log `level`")
 	flag.Parse()
+
+	b, err := files.ReadFile("log.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+	t, err := template.New("log").Parse(string(b))
+	if err != nil {
+		log.Fatal(err)
+	}
+	lth := &logTailHandler{
+		Template: t,
+		mu:       &sync.RWMutex{},
+	}
+	lh := slog.NewTextHandler(
+		io.MultiWriter(os.Stderr, lth),
+		&slog.HandlerOptions{Level: logLevel},
+	)
+	slog.SetDefault(slog.New(lh))
+	http.Handle("/log", lth)
 
 	cfg, err := disco.Load(f.config)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	b, err := files.ReadFile("disco.html")
+	b, err = files.ReadFile("disco.html")
 	if err != nil {
 		log.Fatal(err)
 	}
-	t, err := template.New("disco").Parse(string(b))
+	t, err = template.New("disco").Parse(string(b))
 	if err != nil {
 		log.Fatal(err)
 	}
