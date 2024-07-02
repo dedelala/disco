@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -14,32 +13,14 @@ import (
 	"time"
 
 	"github.com/dedelala/disco/color"
-	"github.com/dedelala/disco/hue"
-	"github.com/dedelala/disco/lifx"
-	"github.com/ghodss/yaml"
 )
 
 type Config struct {
-	Hue   hue.Config
-	Lifx  lifx.Config
 	Map   map[string]string
 	Link  map[string][]string
 	Cue   map[string]Cue
 	Chase map[string]Chase
 	Sheet []Sheet
-}
-
-func Load(file string) (*Config, error) {
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-	var c Config
-	err = yaml.Unmarshal(b, &c)
-	if err != nil {
-		return nil, err
-	}
-	return &c, nil
 }
 
 type Cmdr interface {
@@ -318,7 +299,7 @@ func (s Splay) Cmd(cmds []Cmd) ([]Cmd, error) {
 			splays = append(splays, c)
 		}
 	}
-	slices.DeleteFunc(cmds, func(cmd Cmd) bool {
+	cmds = slices.DeleteFunc(cmds, func(cmd Cmd) bool {
 		return cmd.Action == "splay" || cmd.Action == "shuffle"
 	})
 	cmds = append(cmds, splays...)

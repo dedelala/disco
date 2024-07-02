@@ -15,10 +15,7 @@ import (
 	"sync"
 
 	"github.com/dedelala/disco"
-	"github.com/dedelala/disco/hue"
-	"github.com/dedelala/disco/huecmd"
-	"github.com/dedelala/disco/lifx"
-	"github.com/dedelala/disco/lifxcmd"
+	"github.com/dedelala/disco/system"
 )
 
 type page struct {
@@ -191,10 +188,15 @@ func main() {
 	slog.SetDefault(slog.New(lh))
 	http.Handle("/log", lth)
 
-	cfg, err := disco.Load(f.config)
+	cfg, err := system.Load(f.config)
 	if err != nil {
 		log.Fatal(err)
 	}
+	cmdr, err := system.Init(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer system.Shutdown()
 
 	b, err = files.ReadFile("disco.html")
 	if err != nil {
@@ -205,22 +207,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	h := huecmd.Cmdr{Client: hue.New(cfg.Hue)}
-	lc, err := lifx.New(cfg.Lifx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	l := lifxcmd.Cmdr{Client: lc}
-
-	cmdr := disco.WithCue(disco.WithSplay(disco.WithLink(disco.WithMap(disco.Cmdrs{
-		disco.WithPrefix(h, "hue/"),
-		disco.WithPrefix(l, "lifx/"),
-	}, cfg.Map), cfg.Link), cfg.Link), cfg.Cue)
-
 	fs := logHandler{http.FileServer(http.FS(files))}
 	http.Handle("/NotoSansMono-VariableFont_wdth,wght.ttf", fs)
 	http.Handle("/android-chrome-192x192.png", fs)
-	http.Handle("/android-chrome-512x512.png", fs)
 	http.Handle("/apple-touch-icon.png", fs)
 	http.Handle("/disco.css", fs)
 	http.Handle("/favicon-16x16.png", fs)
@@ -240,7 +229,7 @@ func main() {
 	sh := logHandler{http.StripPrefix("/chase/", chaseHandler{chsr})}
 	http.Handle("/chase/", sh)
 
-	ph := logHandler{pageHandler{t, page{cfg, chsr}}}
+	ph := logHandler{pageHandler{t, page{cfg.Config, chsr}}}
 	http.Handle("/", ph)
 	log.Fatal(http.ListenAndServe(f.listen, nil))
 }

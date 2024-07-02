@@ -9,7 +9,7 @@ require (
 )
 
 require (
-	golang.org/x/sys v0.11.0 // indirect
-	golang.org/x/term v0.11.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/term v0.20.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )

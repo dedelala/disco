@@ -13,11 +13,8 @@ import (
 
 	"github.com/dedelala/disco"
 	"github.com/dedelala/disco/color"
-	"github.com/dedelala/disco/hue"
-	"github.com/dedelala/disco/huecmd"
-	"github.com/dedelala/disco/lifx"
-	"github.com/dedelala/disco/lifxcmd"
-	"golang.org/x/crypto/ssh/terminal"
+	"github.com/dedelala/disco/system"
+	"golang.org/x/term"
 )
 
 func colorStdout(cmd disco.Cmd) string {
@@ -53,23 +50,15 @@ func main() {
 	lh := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: f.logLevel})
 	slog.SetDefault(slog.New(lh))
 
-	cfg, err := disco.Load(f.config)
+	cfg, err := system.Load(f.config)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	h := huecmd.Cmdr{Client: hue.New(cfg.Hue)}
-	lc, err := lifx.New(cfg.Lifx)
+	cmdr, err := system.Init(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer lc.End()
-	l := lifxcmd.Cmdr{Client: lc}
-
-	cmdr := disco.WithCue(disco.WithSplay(disco.WithLink(disco.WithMap(disco.Cmdrs{
-		disco.WithPrefix(h, "hue/"),
-		disco.WithPrefix(l, "lifx/"),
-	}, cfg.Map), cfg.Link), cfg.Link), cfg.Cue)
+	defer system.Shutdown()
 
 	if f.watch {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -93,7 +82,7 @@ func main() {
 		return cmds[i].String() < cmds[j].String()
 	})
 
-	if !terminal.IsTerminal(int(os.Stdout.Fd())) {
+	if !term.IsTerminal(int(os.Stdout.Fd())) {
 		for _, cmd := range cmds {
 			fmt.Printf("%s\n", cmd)
 		}
