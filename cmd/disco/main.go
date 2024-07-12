@@ -12,8 +12,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/dedelala/disco"
+	"github.com/dedelala/disco/backend"
 	"github.com/dedelala/disco/color"
-	"github.com/dedelala/disco/system"
 	"golang.org/x/term"
 )
 
@@ -25,7 +25,7 @@ func colorStdout(cmd disco.Cmd) string {
 		return ""
 	}
 	c, _ := disco.ParseColor(cmd.Args[0])
-	return " " + color.CtoTermBG(c, "  ")
+	return " " + color.SprintcTermBG(c, "  ")
 }
 
 type flags struct {
@@ -50,15 +50,17 @@ func main() {
 	lh := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: f.logLevel})
 	slog.SetDefault(slog.New(lh))
 
-	cfg, err := system.Load(f.config)
+	cfg, err := backend.Load(f.config)
 	if err != nil {
 		log.Fatal(err)
 	}
-	cmdr, err := system.Init(cfg)
+	cmdrs, err := backend.New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer system.Shutdown()
+	defer backend.Shutdown()
+
+	cmdr := disco.New(cmdrs, cfg.Config)
 
 	if f.watch {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)

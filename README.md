@@ -59,6 +59,7 @@ font used is Leckerli One by [Gesine Todt](www.gesine-todt.de) also under the
 
 ```
 .
+├── backend            # unified config, backend init and shutdown
 ├── bin                # build and deploy scripts
 ├── cmd
 │   ├── color          # playground for the color package, may or may not build
@@ -66,13 +67,15 @@ font used is Leckerli One by [Gesine Todt](www.gesine-todt.de) also under the
 │   ├── discod         # web server
 │   ├── hue            # playground for the hue package, may or may not build
 │   └── lifx           # playground for the lifx package, may or may not build
-├── color              # color conversion utilities
+├── color              # color conversion and utilities
 ├── disco.example.yml  # example configuration file
 ├── disco.go           # core text protocol
+├── faux               # mock backend
+├── fauxcmd            # text protocol implementation for faux
 ├── hue                # thin wrapper over hue api
-├── huecmd             # translation layer between text protocol and hue
+├── huecmd             # text protocol implementation for hue
 ├── lifx               # thin-ish? lifx lan client
-└── lifxcmd            # translation layer between text protocol and lifx
+└── lifxcmd            # text protocol implementation for lifx
 ```
 
 ## text protocol
@@ -113,6 +116,7 @@ that some colors in the low brightness range will not appear as expected.
 This feels a little strange at first but it's workable. The result is we have
 decoupled color from brightness (dimming) so the `dim` and `color` commands are
 orthogonal.
+
 
 ### get state
 
@@ -207,6 +211,27 @@ commands until all links are resolved.
 
 There is no detection for circular links so watch out. You have
 been warned.
+
+
+### splay and shuffle
+
+The `splay` and `shuffle` commands can create and apply color schemes. Using
+the above example as configuration:
+
+```
+splay lights red blue
+```
+
+will become something like this
+
+```
+color light1 ff0000
+color light2 ff00ff
+color light3 0000ff
+```
+
+The `shuffle` command does the same thing but the colors are applied in a random
+order.
 
 
 ### cue

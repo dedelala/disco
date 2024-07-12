@@ -15,11 +15,11 @@ import (
 	"sync"
 
 	"github.com/dedelala/disco"
-	"github.com/dedelala/disco/system"
+	"github.com/dedelala/disco/backend"
 )
 
 type page struct {
-	config *disco.Config
+	config disco.Config
 	chaser disco.Chaser
 }
 
@@ -188,15 +188,17 @@ func main() {
 	slog.SetDefault(slog.New(lh))
 	http.Handle("/log", lth)
 
-	cfg, err := system.Load(f.config)
+	cfg, err := backend.Load(f.config)
 	if err != nil {
 		log.Fatal(err)
 	}
-	cmdr, err := system.Init(cfg)
+	cmdrs, err := backend.New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer system.Shutdown()
+	defer backend.Shutdown()
+
+	cmdr := disco.New(cmdrs, cfg.Config)
 
 	b, err = files.ReadFile("disco.html")
 	if err != nil {

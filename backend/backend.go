@@ -1,6 +1,7 @@
-package system
+package backend
 
 import (
+	"errors"
 	"os"
 
 	"github.com/dedelala/disco"
@@ -14,7 +15,7 @@ import (
 )
 
 type Config struct {
-	*disco.Config
+	disco.Config
 	Hue  *hue.Config
 	Lifx *lifx.Config
 	Faux *faux.Config
@@ -35,7 +36,7 @@ func Load(file string) (*Config, error) {
 
 var onShutdown []func()
 
-func Init(cfg *Config) (disco.Cmdr, error) {
+func New(cfg *Config) (disco.Cmdrs, error) {
 	var cmdrs disco.Cmdrs
 	if cfg.Hue != nil {
 		h := huecmd.Cmdr{Client: hue.New(*cfg.Hue)}
@@ -55,13 +56,11 @@ func Init(cfg *Config) (disco.Cmdr, error) {
 		cmdrs = append(cmdrs, disco.WithPrefix(x, "faux/"))
 	}
 
-	var cmdr disco.Cmdr
-	cmdr = disco.WithMap(cmdrs, cfg.Map)
-	cmdr = disco.WithLink(cmdr, cfg.Link)
-	cmdr = disco.WithSplay(cmdr, cfg.Link)
-	cmdr = disco.WithCue(cmdr, cfg.Cue)
+	if len(cmdrs) == 0 {
+		return nil, errors.New("no backend was configured in disco.yml")
+	}
 
-	return cmdr, nil
+	return cmdrs, nil
 }
 
 func Shutdown() {

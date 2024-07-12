@@ -1,39 +1,13 @@
 package color
 
 import (
-	"fmt"
 	"math"
 	"sort"
 
 	"gonum.org/v1/gonum/spatial/r2"
 )
 
-// CtoTermFG wraps s to set the terminal foreground color to the 24 bit RGB
-// value of c
-func CtoTermFG(c uint32, s string) string {
-	return fmt.Sprintf(
-		"\x1b[38;2;%d;%d;%dm%s\x1b[0m",
-		uint8(c>>16),
-		uint8(c>>8),
-		uint8(c),
-		s,
-	)
-}
-
-// CtoTermBG wraps s to set the terminal background color to the 24 bit RGB
-// value of c
-func CtoTermBG(c uint32, s string) string {
-	return fmt.Sprintf(
-		"\x1b[48;2;%d;%d;%dm%s\x1b[0m",
-		uint8(c>>16),
-		uint8(c>>8),
-		uint8(c),
-		s,
-	)
-}
-
 // CtoRGB converts a 24 bit RGB value stored in the least significant bits
-// of a uint32 to float64 values on the range of 0.0 to 1.0
 func CtoRGB(c uint32) (r, g, b float64) {
 	r = float64(uint8(c>>16)) / math.MaxUint8
 	g = float64(uint8(c>>8)) / math.MaxUint8

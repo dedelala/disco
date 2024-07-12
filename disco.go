@@ -28,6 +28,10 @@ type Cmdr interface {
 	Watch(ctx context.Context) (<-chan Cmd, error)
 }
 
+func New(c Cmdr, cfg Config) Cmdr {
+	return WithCue(WithSplay(WithLink(WithMap(c, cfg.Map), cfg.Link), cfg.Link), cfg.Cue)
+}
+
 type Cmd struct {
 	Action string
 	Target string

@@ -64,7 +64,7 @@ func main() {
 				s = "X"
 			}
 			// fmt.Print(color.CtoTermBG(c, s) + color.CtoTermBG(cb, s))
-			fmt.Print(color.CtoTermBG(cb, s) + color.CtoTermBG(cb, s))
+			fmt.Print(color.SprintcTermBG(cb, s) + color.SprintcTermBG(cb, s))
 		}
 		fmt.Println()
 	}
