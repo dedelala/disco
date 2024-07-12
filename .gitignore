@@ -5,4 +5,6 @@ cmd/disco/disco
 cmd/discod/discod
 cmd/hue/hue
 cmd/lifx/lifx
+cmd/printgamut/printgamut
+cmd/printxy/printxy
 dist/
