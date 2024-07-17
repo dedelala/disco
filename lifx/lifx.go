@@ -115,10 +115,7 @@ func newState(target uint64, sp *statePayload) State {
 }
 
 func (l *Client) States() ([]State, error) {
-	select {
-	case <-l.ready:
-	case <-after(l.Config.Timeout):
-	}
+	<-l.ready
 
 	var ss []State
 	addrs := <-l.addrs
@@ -133,10 +130,7 @@ func (l *Client) States() ([]State, error) {
 }
 
 func (l *Client) State(target uint64) (State, error) {
-	select {
-	case <-l.ready:
-	case <-after(l.Config.Timeout):
-	}
+	<-l.ready
 
 	addrs := <-l.addrs
 	addr, ok := addrs[target]
@@ -155,10 +149,7 @@ type SetPower struct {
 }
 
 func (l *Client) SetPower(target uint64, s SetPower) error {
-	select {
-	case <-l.ready:
-	case <-after(l.Config.Timeout):
-	}
+	<-l.ready
 
 	addrs := <-l.addrs
 	addr, ok := addrs[target]
@@ -186,10 +177,7 @@ type SetColor struct {
 }
 
 func (l *Client) SetColor(target uint64, s SetColor) error {
-	select {
-	case <-l.ready:
-	case <-after(l.Config.Timeout):
-	}
+	<-l.ready
 
 	addrs := <-l.addrs
 	addr, ok := addrs[target]
@@ -398,8 +386,11 @@ func (l *Client) discoverTx(addrs []net.Addr) {
 }
 
 func (l *Client) discoverRx(rx <-chan *packet) {
-	addrs := map[uint64]*net.UDPAddr{}
-	var ready bool
+	var (
+		addrs   = map[uint64]*net.UDPAddr{}
+		timeout = after(l.Config.Timeout)
+		ready   bool
+	)
 	for {
 		select {
 		case p, ok := <-rx:
@@ -431,6 +422,12 @@ func (l *Client) discoverRx(rx <-chan *packet) {
 				close(l.ready)
 				ready = true
 			}
+		case <-timeout:
+			if !ready {
+				slog.Warn("lifx: discovery timeout")
+				close(l.ready)
+				ready = true
+			}
 		case l.addrs <- addrs:
 			addrs = maps.Clone(addrs)
 		case <-l.done:
@@ -450,10 +447,7 @@ func (l *Client) addr(dev string) (*net.UDPAddr, error) {
 		return nil, fmt.Errorf("invalid dev %s", dev)
 	}
 
-	select {
-	case <-l.ready:
-	case <-after(l.Config.Timeout):
-	}
+	<-l.ready
 
 	addrs := <-l.addrs
 	addr, ok := addrs[id]
