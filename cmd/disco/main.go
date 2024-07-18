@@ -78,7 +78,7 @@ func main() {
 	cmd := disco.ParseCmd(flag.Args())
 	cmds, err := cmdr.Cmd([]disco.Cmd{cmd})
 	if err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
 	}
 	sort.Slice(cmds, func(i, j int) bool {
 		return cmds[i].String() < cmds[j].String()

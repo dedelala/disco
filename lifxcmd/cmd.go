@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"math"
+	"sync"
 
 	"github.com/dedelala/disco"
 	"github.com/dedelala/disco/color"
@@ -19,86 +20,93 @@ type Cmdr struct {
 func (c Cmdr) Cmd(cmds []disco.Cmd) ([]disco.Cmd, error) {
 	var (
 		cout  []disco.Cmd
+		errs  error
 		preqs = map[string]lifx.SetPower{}
 		creqs = map[string]lifx.SetColor{}
 	)
 
 	states, err := c.states(cmds)
-	if err != nil {
+	if len(states) == 0 {
 		return nil, err
 	}
+	errs = errors.Join(errs, err)
 
 	for _, cmd := range cmds {
+		var (
+			cs  []disco.Cmd
+			err error
+		)
 		switch cmd.Action {
 		case "switch":
-			cs, err := cmdSwitch(cmd, states, preqs)
-			if err != nil {
-				return nil, err
-			}
-			cout = append(cout, cs...)
+			cs, err = cmdSwitch(cmd, states, preqs)
 		case "dim":
-			cs, err := cmdDim(cmd, states, creqs)
-			if err != nil {
-				return nil, err
-			}
-			cout = append(cout, cs...)
+			cs, err = cmdDim(cmd, states, creqs)
 		case "color":
-			cs, err := cmdColor(cmd, states, creqs)
-			if err != nil {
-				return nil, err
-			}
-			cout = append(cout, cs...)
+			cs, err = cmdColor(cmd, states, creqs)
 		}
+		cout = append(cout, cs...)
+		errs = errors.Join(errs, err)
 	}
 
+	wg := &sync.WaitGroup{}
 	for t, r := range preqs {
-		err := c.SetPower(states[t].Target, r)
-		if err != nil {
-			log.Printf("Warning: lifx: %s: did not ack", t)
-		}
+		wg.Add(1)
+		go func() {
+			err := c.SetPower(states[t].Target, r)
+			if err != nil {
+				slog.Warn("lifx did not ack", "target", t)
+			}
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 
+	wg = &sync.WaitGroup{}
 	for t, r := range creqs {
-		err := c.SetColor(states[t].Target, r)
-		if err != nil {
-			log.Printf("Warning: lifx: %s: did not ack", t)
-		}
+		wg.Add(1)
+		go func() {
+			err := c.SetColor(states[t].Target, r)
+			if err != nil {
+				slog.Warn("lifx did not ack", "target", t)
+			}
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 
 	return cout, nil
 }
 
 func (c Cmdr) states(cmds []disco.Cmd) (map[string]lifx.State, error) {
-	var targets []string
+	var (
+		targets []uint64
+		errs    error
+	)
 	for _, cmd := range cmds {
 		if cmd.Target == "" {
-			targets = []string{}
+			targets = []uint64{}
 			break
 		}
-		targets = append(targets, cmd.Target)
+		t, err := parseTarget(cmd.Target)
+		if err != nil {
+			errs = errors.Join(errs, fmt.Errorf("lifx: %s: %w", cmd.Target, err))
+			continue
+		}
+		targets = append(targets, t)
 	}
+	if targets == nil {
+		return nil, errs
+	}
+
+	ss, err := c.State(targets...)
 	states := map[string]lifx.State{}
-	for _, target := range targets {
-		t, err := parseTarget(target)
-		if err != nil {
-			return nil, fmt.Errorf("lifx: %s: %w", target, err)
-		}
-		s, err := c.State(t)
-		if err != nil {
-			return nil, fmt.Errorf("lifx: %s: %w", target, err)
-		}
-		states[target] = s
+	for _, s := range ss {
+		states[fmt.Sprintf("%x", s.Target)] = s
 	}
-	if len(states) == 0 {
-		ss, err := c.States()
-		if err != nil {
-			return nil, fmt.Errorf("lifx: %w", err)
-		}
-		for _, s := range ss {
-			states[fmt.Sprintf("%x", s.Target)] = s
-		}
+	if err != nil {
+		errs = errors.Join(errs, fmt.Errorf("lifx: %w", err))
 	}
-	return states, nil
+	return states, errs
 }
 
 func cmdSwitch(cmd disco.Cmd, states map[string]lifx.State, preqs map[string]lifx.SetPower) ([]disco.Cmd, error) {

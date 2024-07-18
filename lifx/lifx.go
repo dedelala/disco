@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"maps"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -114,34 +115,74 @@ func newState(target uint64, sp *statePayload) State {
 	}
 }
 
-func (l *Client) States() ([]State, error) {
+func (l *Client) State(target ...uint64) ([]State, error) {
 	<-l.ready
 
-	var ss []State
 	addrs := <-l.addrs
-	for id, addr := range addrs {
-		sp, err := l.get(addr)
-		if err != nil {
-			return nil, err
-		}
-		ss = append(ss, newState(id, sp))
+	if len(target) == 0 {
+		return l.state(addrs)
 	}
-	return ss, nil
+	targetAddrs := map[uint64]*net.UDPAddr{}
+	var errs error
+	for _, t := range target {
+		addr, ok := addrs[t]
+		if !ok {
+			errs = errors.Join(errs, fmt.Errorf("%x: light not found or not reachable", t))
+			continue
+		}
+		targetAddrs[t] = addr
+	}
+	ss, err := l.state(targetAddrs)
+	return ss, errors.Join(errs, err)
 }
 
-func (l *Client) State(target uint64) (State, error) {
+func (l *Client) state(addrs map[uint64]*net.UDPAddr) ([]State, error) {
 	<-l.ready
 
-	addrs := <-l.addrs
-	addr, ok := addrs[target]
-	if !ok {
-		return State{}, errors.New("light not found")
+	var (
+		states = make(chan State)
+		errs   = make(chan error)
+		wg     = &sync.WaitGroup{}
+	)
+	for id, addr := range addrs {
+		wg.Add(1)
+		go func() {
+			s, err := l.get(addr)
+			if err != nil {
+				errs <- err
+			}
+			if s != nil {
+				states <- newState(id, s)
+			}
+			wg.Done()
+		}()
 	}
-	sp, err := l.get(addr)
-	if err != nil {
-		return State{}, err
-	}
-	return newState(target, sp), nil
+	go func() {
+		wg.Wait()
+		close(states)
+		close(errs)
+	}()
+
+	var (
+		ssout  = make(chan []State)
+		errout = make(chan error)
+	)
+	go func() {
+		var ss []State
+		for s := range states {
+			ss = append(ss, s)
+		}
+		ssout <- ss
+	}()
+	go func() {
+		var err error
+		for e := range errs {
+			err = errors.Join(err, e)
+		}
+		errout <- err
+	}()
+
+	return <-ssout, <-errout
 }
 
 type SetPower struct {
