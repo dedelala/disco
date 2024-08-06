@@ -1,0 +1,136 @@
+---
+Faux:
+  File: faux.json
+Map:
+  faux/eb421ba: down1
+  faux/d92405d: down2
+  faux/7510b59: down3
+  faux/1d4a72b: down4
+  faux/f3f5ea9: up1
+  faux/b5fb0ac: up2
+  faux/689f08f: up3
+  faux/570d130: up4
+  faux/8f56b8f: fire1
+  faux/21385f9: fire2
+  faux/de13bab: decks1
+  faux/26a45b5: decks2
+  faux/a907251: bed
+Link:
+  downs: [down1, down2, down3, down4]
+  ups: [up1, up2, up3, up4]
+  fire: [fire1, fire2]
+  decks: [decks1, decks2]
+  walls: [ups, fire, decks, bed]
+  all: [downs, ups, fire, decks, bed]
+Cue:
+  all-on:
+    Text: All On
+    Cmds:
+      - switch all on
+  all-off:
+    Text: All Off
+    Cmds:
+      - switch all off
+  dim-0:
+    Text: Min Dim
+    Cmds:
+      - dim walls 10
+      - dim downs 1
+  dim-1:
+    Text: Medium Dim
+    Cmds:
+      - dim walls 50
+      - dim downs 25
+  dim-2:
+    Text: Fairly Lit
+    Cmds:
+      - dim walls 100
+      - dim downs 50
+  dim-3:
+    Text: Full Power
+    Cmds:
+      - dim all 100
+  warm-pink:
+    Text: Warm/Pink
+    Cmds:
+      - color bed fe9375
+      - color decks cf75ff
+      - color downs ff9375
+      - color fire ff9375
+      - color ups fe7c75
+  studio-52:
+    Text: Studio 52
+    Cmds:
+      - color downs ff8a33
+      - color ups 6c32fe
+      - color fire ff0121
+      - color decks fe319f
+      - color bed fe274f
+  princess-royalty:
+    Text: Princess Royalty
+    Cmds:
+      - color downs carmine
+      - color walls royal-blue
+      - color ups royal-purple
+      - color decks royal-purple
+  init-demo:
+    Text: Initialize Demo
+    Cmds:
+      - switch faux/a907251 off
+      - switch faux/eb421ba off
+      - switch faux/d92405d off
+      - switch faux/7510b59 off
+      - switch faux/1d4a72b off
+      - switch faux/f3f5ea9 off
+      - switch faux/b5fb0ac off
+      - switch faux/689f08f off
+      - switch faux/570d130 off
+      - switch faux/8f56b8f off
+      - switch faux/21385f9 off
+      - switch faux/de13bab off
+      - switch faux/26a45b5 off
+      - dim faux/a907251 100
+      - dim faux/eb421ba 100
+      - dim faux/d92405d 100
+      - dim faux/7510b59 100
+      - dim faux/1d4a72b 100
+      - dim faux/f3f5ea9 100
+      - dim faux/b5fb0ac 100
+      - dim faux/689f08f 100
+      - dim faux/570d130 100
+      - dim faux/8f56b8f 100
+      - dim faux/21385f9 100
+      - dim faux/de13bab 100
+      - dim faux/26a45b5 100
+      - color faux/a907251 red
+      - color faux/eb421ba red
+      - color faux/d92405d red
+      - color faux/7510b59 red
+      - color faux/1d4a72b red
+      - color faux/f3f5ea9 red
+      - color faux/b5fb0ac red
+      - color faux/689f08f red
+      - color faux/570d130 red
+      - color faux/8f56b8f red
+      - color faux/21385f9 red
+      - color faux/de13bab red
+      - color faux/26a45b5 red
+Sheet:
+  - Text: Switch
+    Group:
+      -
+        - Cue: all-off
+        - Cue: all-on
+  - Text: Dimming
+    Group:
+      -
+        - Cue: dim-0
+        - Cue: dim-1
+        - Cue: dim-2
+        - Cue: dim-3
+  - Text: Color
+    Group:
+      -
+        - Cue: warm-pink
+        - Cue: studio-52
+        - Cue: princess-royalty
