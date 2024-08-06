@@ -63,16 +63,22 @@ func main() {
 
 	fmt.Println("=== RGB ===")
 	printcs(rgb(0xff0000, 0x0000ff, num))
+	fmt.Println()
+	fmt.Println()
 	printcs(rgb(0x00ffff, 0xff00ff, num))
 	fmt.Println()
 
 	fmt.Println("=== HSV ===")
 	printcs(color.Seq(0xff0000, 0x0000ff, num))
+	fmt.Println()
+	fmt.Println()
 	printcs(color.Seq(0x00ffff, 0xff00ff, num))
 	fmt.Println()
 
 	fmt.Println("=== XY ===")
 	printcs(xy(0xff0000, 0x0000ff, num))
+	fmt.Println()
+	fmt.Println()
 	printcs(xy(0x00ffff, 0xff00ff, num))
 	fmt.Println()
 }
