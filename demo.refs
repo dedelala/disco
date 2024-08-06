@@ -1,0 +1,10 @@
+disco.go:26:Cmdr
+disco.demo.yml:4:Map
+disco.go:313:Mapper
+color/xkcd.go:926:"royal-blue"
+color/conv.go:29:HSVtoRGB
+color/conv.go:57:RGBtoHSV
+color/conv.go:86:RGBtoXYB
+color/conv.go:120:XYBtoRGB
+color/conv.go:158:BoundToGamutXY
+color/util.go:33:Seq
