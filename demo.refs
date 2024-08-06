@@ -8,3 +8,9 @@ color/conv.go:86:RGBtoXYB
 color/conv.go:120:XYBtoRGB
 color/conv.go:158:BoundToGamutXY
 color/util.go:33:Seq
+lifx/protocol.go:8:marshaler/packet/payload
+lifx/protocol.go:42:header
+lifx/protocol.go:182:servicePayload
+lifx/protocol.go:244:statePayload
+lifx/protocol.go:220:setColorPayload
+lifx/lifx.go:21:type Client struct {
