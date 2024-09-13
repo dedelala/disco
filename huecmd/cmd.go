@@ -108,12 +108,13 @@ func cmdDim(cmd disco.Cmd, ls map[string]hue.Light, reqs map[string]hue.LightPut
 		return cout, nil
 	}
 
-	l, ok := ls[cmd.Target]
+	id, _, _ := strings.Cut(cmd.Target, "/")
+	l, ok := ls[id]
 	if !ok {
-		return nil, fmt.Errorf("hue: has no target %s", cmd.Target)
+		return nil, fmt.Errorf("hue: has no target %s", id)
 	}
 	if l.Dimming == nil {
-		return nil, fmt.Errorf("hue: has no dimming %s", cmd.Target)
+		return nil, fmt.Errorf("hue: has no dimming %s", id)
 	}
 	if len(cmd.Args) == 0 {
 		return []disco.Cmd{disco.DimCmd(l.Id, l.Dimming.Brightness)}, nil
@@ -121,23 +122,23 @@ func cmdDim(cmd disco.Cmd, ls map[string]hue.Light, reqs map[string]hue.LightPut
 
 	v, err := disco.ParseDim(cmd.Args[0])
 	if err != nil {
-		return nil, fmt.Errorf("hue: %s: %w", cmd.Target, err)
+		return nil, fmt.Errorf("hue: %s: %w", id, err)
 	}
-	req := reqs[cmd.Target]
+	req := reqs[id]
 	req.Dimming = &hue.LightPutDimming{Brightness: v}
 
 	d, err := disco.ParseDuration(cmd.Args)
 	if err != nil {
-		return nil, fmt.Errorf("hue: %s: %w", cmd.Target, err)
+		return nil, fmt.Errorf("hue: %s: %w", id, err)
 	}
 	if req.Dynamics != nil && req.Dynamics.Duration != d.Milliseconds() {
-		return nil, fmt.Errorf("hue: %s: commands have conflicting durations", cmd.Target)
+		return nil, fmt.Errorf("hue: %s: commands have conflicting durations", id)
 	}
 	if req.Dynamics == nil {
 		req.Dynamics = &hue.LightPutDynamics{Duration: d.Milliseconds()}
 	}
 
-	reqs[cmd.Target] = req
+	reqs[id] = req
 	return nil, nil
 }
 
