@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"path"
 	"slices"
 	"strconv"
 	"strings"
@@ -72,6 +73,10 @@ func ParseCmd(args []string) Cmd {
 
 func ParseCmdString(s string) Cmd {
 	return ParseCmd(strings.Fields(s))
+}
+
+func ParseCmdPath(s string) Cmd {
+	return ParseCmd(strings.Split(strings.Trim(path.Clean(s), "/"), "/"))
 }
 
 func newCmd(action, target string, args ...string) Cmd {

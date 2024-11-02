@@ -21,24 +21,34 @@ ul {
     list-style: hiragana;
 }
 
-body, input {
+body, input, a {
     background: #000;
     color: #ccc;
 }
 
-details, input {
+details, input, a {
     cursor: pointer;
 }
 
-input {
+input, a {
     border: 3px groove #aaa;
 }
 
-input:hover {
+.switch.off .off {
+    border: 3px groove #a00;
+    color: #c00
+}
+
+.switch.on .on {
+    border: 3px groove #07a;
+    color: #09c;
+}
+
+input:hover, a:hover {
     background: #222;
 }
 
-input:active {
+input:active, a:active {
     background: #444;
 }
 

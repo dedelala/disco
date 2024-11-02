@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/disco.css">
+<link rel="manifest" href="/manifest.json" />
+<title>DISCO</title>
+</head>
+<body>
+<table>
+<tr>
+    <th><a href="/cmd/switch">switch</a></th>
+    <th><a href="/cmd/dim">dim</a></th>
+    <th><a href="/cmd/color">color</a></th>
+</tr>
+{{- range . -}}
+{{if eq .Action "switch"}}
+<tr class="switch {{index .Args 0}}" id="switch.{{.Target}}">
+    <td>switch</td>
+    <td>{{.Target}}</td>
+    <td>
+        <form action="/cmd/switch/{{.Target}}/off" method="post">
+            <input type="submit" value="off" class="off">
+        </form>
+    </td>
+    <td>
+        <form action="/cmd/switch/{{.Target}}/on" method="post">
+            <input type="submit" value="on" class="on">
+        </form>
+    </td>
+</tr>
+{{end}}
+{{- end -}}
+</table>
+</body>
+</html>

@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 
@@ -55,6 +56,49 @@ func (h pageHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	io.Copy(w, &bb)
 }
 
+type cmdHandler struct {
+	*template.Template
+	disco.Cmdr
+}
+
+func newCmdHandler(cmdr disco.Cmdr) cmdHandler {
+	b, err := files.ReadFile("cmd.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+	t, err := template.New("disco").Parse(string(b))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return cmdHandler{t, cmdr}
+}
+
+func (h cmdHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	cmd := disco.ParseCmdPath(req.URL.Path)
+	cmds, err := h.Cmd([]disco.Cmd{cmd})
+	if err != nil {
+		slog.Error(err.Error())
+	}
+
+	if req.Method == http.MethodPost {
+		http.Redirect(w, req, "/cmd/"+cmd.Action, http.StatusFound)
+		return
+	}
+
+	sort.Slice(cmds, func(i, j int) bool {
+		return cmds[i].String() < cmds[j].String()
+	})
+
+	var bb bytes.Buffer
+	err = h.Execute(&bb, cmds)
+	if err != nil {
+		slog.Error(err.Error())
+		http.Error(w, fmt.Sprintf("Error: %s", err), http.StatusInternalServerError)
+		return
+	}
+	io.Copy(w, &bb)
+}
+
 type cueHandler struct {
 	disco.Cmdr
 }
@@ -83,6 +127,14 @@ func (h chaseHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		h.Chase(chase)
 	}
 	http.Redirect(w, req, "/", http.StatusFound)
+}
+
+type watchHandler struct {
+	disco.Cmdr
+}
+
+func newWatchHandler(cmdr disco.Cmdr) watchHandler {
+	return watchHandler{disco.Multi(cmdr)}
 }
 
 type logHandler struct {
@@ -230,6 +282,9 @@ func main() {
 	}()
 	sh := logHandler{http.StripPrefix("/chase/", chaseHandler{chsr})}
 	http.Handle("/chase/", sh)
+
+	cmdh := logHandler{http.StripPrefix("/cmd/", newCmdHandler(cmdr))}
+	http.Handle("/cmd/", cmdh)
 
 	ph := logHandler{pageHandler{t, page{cfg.Config, chsr}}}
 	http.Handle("/", ph)
