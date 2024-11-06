@@ -73,6 +73,10 @@ Cue:
       - color walls royal-blue
       - color ups royal-purple
       - color decks royal-purple
+  midnight-cranberry:
+    Text: Midnight Cranberry
+    Cmds:
+      - shuffle all midnight cranberry
   init-demo:
     Text: Initialize Demo
     Cmds:
@@ -134,3 +138,4 @@ Sheet:
         - Cue: warm-pink
         - Cue: studio-52
         - Cue: princess-royalty
+        - Cue: midnight-cranberry
