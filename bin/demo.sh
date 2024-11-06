@@ -62,6 +62,18 @@ printrun disco switch
 !
 chmod +x "$base/bin/demo.sh" || die "chmod demo.sh"
 
+cat <<! >"$base/bin/discod.sh"
+#!/bin/bash
+
+printrun(){
+    printf '\e[1;33mDEMO>\e[m %s\n' "\$*"
+    bash -c "\$*"
+}
+
+printrun discod -l :8080 -c "\$HOME/.config/disco.yml"
+!
+chmod +x "$base/bin/discod.sh" || die "chmod discod.sh"
+
 cat <<!
 +-------------------------------------------------------------------------------+
 |               ===========   =====  ==========   ========     ========         |

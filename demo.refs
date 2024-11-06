@@ -14,3 +14,6 @@ lifx/protocol.go:182:servicePayload
 lifx/protocol.go:244:statePayload
 lifx/protocol.go:220:setColorPayload
 lifx/lifx.go:21:Client
+disco.demo.yml:122:Sheet:
+disco.demo.yml:76:  midnight-cranberry:
+disco.demo.yml:141:        - Cue: midnight-cranberry
