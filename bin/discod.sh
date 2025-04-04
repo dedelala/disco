@@ -20,7 +20,7 @@ fi
 rm -rf dist
 mkdir -p dist
 
-CGO_ENABLED=0 GOARCH=arm64 go build -o dist/discod ./cmd/discod/. || die "build"
+CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -o dist/discod ./cmd/discod/. || die "build"
 
 scp dist/discod "$REMOTE:" || die "bin"
 scp disco.yml "$REMOTE:" || die "yml"
