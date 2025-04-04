@@ -2,13 +2,43 @@
 <html data-theme="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <link rel="stylesheet" href="disco.css">
 <link rel="manifest" href="manifest.json" />
 <title>DISCO</title>
 </head>
 <body>
-{{- range .Sheet -}}
+<nav><img src="/android-chrome-512x512.png" alt="DISCO LOGO">
+{{- range $i, $p := .Sheet -}}
+<a {{if $.IsPage $i}}class="focus" {{end}}href="/{{pageIndexNumber $i}}">{{$p.Text}}</a>
+{{- end -}}
+{{- if .Chasing -}}
+<a class="chasseur{{if $.IsPage -1}} focus{{end}}" href="/chasseur">Chasing</a>
+{{- end -}}
+</nav>
+{{- if $.IsPage -1 -}}
+{{with .Chasing -}}
+<div>
+    <p>Chasing</p>
+<ul>
+    <li>
+         <form action="/chase/stop" method="post">
+             <input type="submit" value="all stop">
+         </form>
+    </li>
+    {{- range . -}}
+    <li>
+         <span>{{- $.Chase . -}}</span>
+         <form action="/chase/{{- . -}}/stop" method="post">
+             <input type="submit" value="stop">
+         </form>
+    </li>
+    {{- end -}}
+</ul>
+</div>
+{{end -}}
+{{- else -}}
+{{range .Page.Sections -}}
 <div>
     <p>{{- .Text -}}</p>
     <div>
@@ -22,6 +52,7 @@
         {{- end -}}
         {{- if .Chase -}}
         <form action="/chase/{{- .Chase -}}" method="post">
+            <input type="hidden" name="page" value="{{pageIndexNumber $.N}}">
             <input type="submit" value="{{- $.Chase .Chase -}}">
         </form>
         {{- end -}}
@@ -30,21 +61,7 @@
     {{- end -}}
     </div>
 </div>
-{{- end -}}
-{{- with .Chasing -}}
-<div>
-    <p>Chasing</p>
-<ul>
-    {{- range . -}}
-    <li>
-         <span>{{- $.Chase . -}}</span>
-         <form action="/chase/{{- . -}}/stop" method="post">
-             <input type="submit" value="stop">
-         </form>
-    </li>
-    {{- end -}}
-</ul>
-</div>
+{{end -}}
 {{- end -}}
 </body>
 </html>

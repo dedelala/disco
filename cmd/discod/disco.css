@@ -45,3 +45,54 @@ input:active {
 form {
     display: inline-block;
 }
+
+body {
+    margin: 0;
+}
+
+body > div {
+    clear: both;
+    margin: 0 0.2em;
+}
+
+nav {
+    background: #280137;
+    position: sticky;
+    left: 0;
+    top: 0;
+    width: 100%;
+    overflow: hidden;
+}
+
+nav > a, nav > img {
+    display: inline-block;
+    float: left;
+}
+
+nav > a {
+    font-size: 0.8em;
+    font-variant: all-small-caps;
+    color: #ccc;
+    text-decoration: none;
+    height: 100%;
+    padding: 0.25em;
+}
+
+a.focus {
+    color: #fff;
+    text-decoration: underline;
+}
+
+a.chasseur {
+    float: right;
+    background: #9a0200;
+}
+
+nav > img {
+    height: 1.5em;
+    width: 1.5em;
+}
+
+p {
+    margin: 0.5em 0;
+}

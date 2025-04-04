@@ -20,7 +20,7 @@ type Config struct {
 	Link  map[string][]string
 	Cue   map[string]Cue
 	Chase map[string]Chase
-	Sheet []Sheet
+	Sheet []Page
 }
 
 type Cmdr interface {
@@ -559,7 +559,12 @@ func (c Chaser) StopAll() {
 	c.mu.Unlock()
 }
 
-type Sheet struct {
+type Page struct {
+	Text     string
+	Sections []Section
+}
+
+type Section struct {
 	Text  string
 	Group [][]Call
 }

@@ -10,6 +10,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -35,8 +36,31 @@ func (p page) Chasing() []string {
 	return p.chaser.Chasing()
 }
 
-func (p page) Sheet() []disco.Sheet {
+func (p page) Sheet() []disco.Page {
 	return p.config.Sheet
+}
+
+type pageIndex struct {
+	page
+	N int
+}
+
+func (p pageIndex) Page() disco.Page {
+	return p.config.Sheet[p.N]
+}
+
+func (p pageIndex) IsPage(n int) bool {
+	return p.N == n
+}
+
+func pageIndexNumber(n int) string {
+	return []string{
+		"",
+		"un", "deux", "trois", "quatre",
+		"cinq", "six", "sept", "huit",
+		"neuf", "dix", "onze", "douze",
+		"treize", "quatorze", "quinze", "seize",
+	}[n]
 }
 
 type pageHandler struct {
@@ -45,8 +69,21 @@ type pageHandler struct {
 }
 
 func (h pageHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	n, ok := map[string]int{
+		"chasseur": -1,
+		"":         0,
+		"un":       1, "deux": 2, "trois": 3, "quatre": 4,
+		"cinq": 5, "six": 6, "sept": 7, "huit": 8,
+		"neuf": 9, "dix": 10, "onze": 11, "douze": 12,
+		"treize": 13, "quatorze": 14, "quinze": 15, "seize": 16,
+	}[strings.TrimPrefix(req.URL.Path, "/")]
+	if !ok || n > len(h.page.config.Sheet)-1 {
+		http.Error(w, "Cette page n'existe pas !", http.StatusNotFound)
+		return
+	}
+
 	var bb bytes.Buffer
-	err := h.Execute(&bb, h.page)
+	err := h.Execute(&bb, pageIndex{h.page, n})
 	if err != nil {
 		slog.Error(err.Error())
 		http.Error(w, fmt.Sprintf("Error: %s", err), http.StatusInternalServerError)
@@ -77,12 +114,24 @@ type chaseHandler struct {
 
 func (h chaseHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	chase, stop := strings.CutSuffix(req.URL.Path, "/stop")
-	if stop {
+	switch {
+	case chase == "stop":
+		stop = true
+		h.StopAll()
+	case stop:
 		h.Stop(chase)
-	} else {
+	default:
 		h.Chase(chase)
 	}
-	http.Redirect(w, req, "/", http.StatusFound)
+	switch {
+	case stop && len(h.Chasing()) == 0:
+		http.Redirect(w, req, "/", http.StatusFound)
+	case stop:
+		http.Redirect(w, req, "/chasseur", http.StatusFound)
+	default:
+		page := "/" + url.PathEscape(req.PostFormValue("page"))
+		http.Redirect(w, req, page, http.StatusFound)
+	}
 }
 
 type logHandler struct {
@@ -204,7 +253,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	t, err = template.New("disco").Parse(string(b))
+	t, err = template.New("disco").Funcs(template.FuncMap{
+		"pageIndexNumber": pageIndexNumber,
+	}).Parse(string(b))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -212,6 +263,7 @@ func main() {
 	fs := logHandler{http.FileServer(http.FS(files))}
 	http.Handle("/NotoSansMono-VariableFont_wdth,wght.ttf", fs)
 	http.Handle("/android-chrome-192x192.png", fs)
+	http.Handle("/android-chrome-512x512.png", fs)
 	http.Handle("/apple-touch-icon.png", fs)
 	http.Handle("/disco.css", fs)
 	http.Handle("/favicon-16x16.png", fs)
