@@ -242,10 +242,10 @@ type Light struct {
 		XY        XY     `json:"xy"`
 	} `json:"color"`
 	ColorTemperature *struct {
-		Mirek       interface{} `json:"mirek"`
+		Mirek       int `json:"mirek"`
 		MirekSchema struct {
-			MirekMaximum float64 `json:"mirek_maximum"`
-			MirekMinimum float64 `json:"mirek_minimum"`
+			MirekMaximum int `json:"mirek_maximum"`
+			MirekMinimum int `json:"mirek_minimum"`
 		} `json:"mirek_schema"`
 		MirekValid bool `json:"mirek_valid"`
 	} `json:"color_temperature"`

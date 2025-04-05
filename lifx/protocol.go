@@ -131,6 +131,8 @@ const (
 	devGetPower     ptype = 20
 	devSetPower     ptype = 21
 	devStatePower   ptype = 22
+	devGetVersion   ptype = 32
+	devStateVersion ptype = 33
 	ack             ptype = 45
 	liGet           ptype = 101
 	liSetColor      ptype = 102
@@ -147,6 +149,8 @@ func (t ptype) String() string {
 		devGetPower:     "devGetPower",
 		devSetPower:     "devSetPower",
 		devStatePower:   "devStatePower",
+		devGetVersion:   "devGetVersion",
+		devStateVersion: "devStateVersion",
 		ack:             "ack",
 		liGet:           "liGet",
 		liSetColor:      "liSetColor",
@@ -167,6 +171,8 @@ func (t ptype) newPayload() (payload, bool) {
 		return &servicePayload{}, true
 	case devStatePower:
 		return &powerPayload{}, true
+	case devStateVersion:
+		return &versionPayload{}, true
 	case liSetColor:
 		return &setColorPayload{}, true
 	case liState:
@@ -213,6 +219,30 @@ func (p *powerPayload) marshal() ([]byte, error) {
 func (p *powerPayload) unmarshal(b []byte) error {
 	var vs = []interface{}{
 		&p.level,
+	}
+	return binread(b, vs)
+}
+
+type versionPayload struct {
+	vendor  uint32
+	product uint32
+	// reserved 4 bytes
+}
+
+func (p *versionPayload) marshal() ([]byte, error) {
+	var vs = []interface{}{
+		p.vendor,
+		p.product,
+		// [4]byte{},
+	}
+	return binwrite(vs)
+}
+
+func (p *versionPayload) unmarshal(b []byte) error {
+	var vs = []interface{}{
+		&p.vendor,
+		&p.product,
+		// [4]byte{},
 	}
 	return binread(b, vs)
 }

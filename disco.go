@@ -126,8 +126,15 @@ func ColorCmd(target string, c uint32) Cmd {
 	return newCmd(
 		"color",
 		target,
-		fmt.Sprintf("%06x", c),
+		Sprintc(c),
 	)
+}
+
+func Sprintc(c uint32) string {
+	if color.HasK(c) {
+		return fmt.Sprintf("%08x", c)
+	}
+	return fmt.Sprintf("%06x", c)
 }
 
 func ParseColor(s string) (uint32, error) {
@@ -135,7 +142,11 @@ func ParseColor(s string) (uint32, error) {
 	if ok {
 		return c, nil
 	}
-	n, err := fmt.Sscanf(s, "%06x", &c)
+	c, ok = color.K(s)
+	if ok {
+		return c, nil
+	}
+	n, err := fmt.Sscanf(s, "%08x", &c)
 	if err != nil {
 		return c, err
 	}

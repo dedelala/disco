@@ -24,9 +24,9 @@ type Client struct {
 	sc <-chan uint32
 	rp func() fanRx
 
-	addrs chan map[uint64]*net.UDPAddr
-	ready chan struct{}
-	done  chan struct{}
+	discos chan map[uint64]discovery
+	ready  chan struct{}
+	done   chan struct{}
 }
 
 func New(c Config) (*Client, error) {
@@ -63,9 +63,9 @@ func New(c Config) (*Client, error) {
 		sc:         sc,
 		rp:         rp,
 
-		addrs: make(chan map[uint64]*net.UDPAddr),
-		ready: make(chan struct{}),
-		done:  make(chan struct{}),
+		discos: make(chan map[uint64]discovery),
+		ready:  make(chan struct{}),
+		done:   make(chan struct{}),
 	}
 
 	go func() {
@@ -93,6 +93,7 @@ type State struct {
 	Target uint64
 	Power  uint16
 	Color
+	*Product
 }
 
 type Color struct {
@@ -118,25 +119,28 @@ func newState(target uint64, sp *statePayload) State {
 func (l *Client) State(target ...uint64) ([]State, error) {
 	<-l.ready
 
-	addrs := <-l.addrs
+	discos := <-l.discos
 	if len(target) == 0 {
-		return l.state(addrs)
+		return l.state(discos)
 	}
-	targetAddrs := map[uint64]*net.UDPAddr{}
+	targetDiscos := map[uint64]discovery{}
 	var errs error
 	for _, t := range target {
-		addr, ok := addrs[t]
+		d, ok := discos[t]
 		if !ok {
 			errs = errors.Join(errs, fmt.Errorf("%x: light not found or not reachable", t))
 			continue
 		}
-		targetAddrs[t] = addr
+		targetDiscos[t] = d
 	}
-	ss, err := l.state(targetAddrs)
+	ss, err := l.state(targetDiscos)
+	for i := range ss {
+		ss[i].Product = discos[ss[i].Target].product
+	}
 	return ss, errors.Join(errs, err)
 }
 
-func (l *Client) state(addrs map[uint64]*net.UDPAddr) ([]State, error) {
+func (l *Client) state(discos map[uint64]discovery) ([]State, error) {
 	<-l.ready
 
 	var (
@@ -144,10 +148,10 @@ func (l *Client) state(addrs map[uint64]*net.UDPAddr) ([]State, error) {
 		errs   = make(chan error)
 		wg     = &sync.WaitGroup{}
 	)
-	for id, addr := range addrs {
+	for id, d := range discos {
 		wg.Add(1)
 		go func() {
-			s, err := l.get(addr)
+			s, err := l.get(d.addr)
 			if err != nil {
 				errs <- err
 			}
@@ -192,8 +196,8 @@ type SetPower struct {
 func (l *Client) SetPower(target uint64, s SetPower) error {
 	<-l.ready
 
-	addrs := <-l.addrs
-	addr, ok := addrs[target]
+	discos := <-l.discos
+	d, ok := discos[target]
 	if !ok {
 		return errors.New("light not found")
 	}
@@ -201,7 +205,7 @@ func (l *Client) SetPower(target uint64, s SetPower) error {
 		header: header{
 			ptype: liSetPower,
 		},
-		addr: addr,
+		addr: d.addr,
 		payload: &liSetPowerPayload{
 			level: s.Level,
 		},
@@ -220,8 +224,8 @@ type SetColor struct {
 func (l *Client) SetColor(target uint64, s SetColor) error {
 	<-l.ready
 
-	addrs := <-l.addrs
-	addr, ok := addrs[target]
+	discos := <-l.discos
+	d, ok := discos[target]
 	if !ok {
 		return errors.New("light not found")
 	}
@@ -229,7 +233,7 @@ func (l *Client) SetColor(target uint64, s SetColor) error {
 		header: header{
 			ptype: liSetColor,
 		},
-		addr: addr,
+		addr: d.addr,
 		payload: &setColorPayload{
 			h:        s.H,
 			s:        s.S,
@@ -314,6 +318,7 @@ func (l *Client) tx(p *packet) error {
 		return err
 	}
 	_, err = l.WriteTo(b, p.addr)
+	// slog.Debug("lifx tx", "addr", p.addr, "header", p.header, "payload", p.payload, "error", err)
 	if err != nil {
 		return err
 	}
@@ -343,6 +348,7 @@ func (l *Client) rx() (*packet, error) {
 		}
 		pkt.payload = pld
 	}
+	// slog.Debug("lifx rx", "header", pkt.header, "payload", pkt.payload)
 	return pkt, nil
 }
 
@@ -418,6 +424,13 @@ func (l *Client) discoverTx(addrs []net.Addr) {
 					},
 					addr: addr,
 				})
+				l.tx(&packet{
+					header: header{
+						tagged: true,
+						ptype:  devGetVersion,
+					},
+					addr: addr,
+				})
 			}
 			t = after(dly())
 		case <-l.done:
@@ -426,9 +439,18 @@ func (l *Client) discoverTx(addrs []net.Addr) {
 	}
 }
 
+type discovery struct {
+	addr    *net.UDPAddr
+	product *Product
+}
+
+func (d discovery) ready() bool {
+	return d.addr != nil && d.product != nil
+}
+
 func (l *Client) discoverRx(rx <-chan *packet) {
 	var (
-		addrs   = map[uint64]*net.UDPAddr{}
+		discos  = map[uint64]discovery{}
 		timeout = after(l.Config.Timeout)
 		ready   bool
 	)
@@ -439,29 +461,56 @@ func (l *Client) discoverRx(rx <-chan *packet) {
 				slog.Warn("lifx discover: channel closed!")
 				return
 			}
-			if p.ptype != devStateService {
+
+			switch p.ptype {
+			case devStateService:
+			case devStateVersion:
+			default:
 				continue
 			}
+
 			host, _, err := net.SplitHostPort(p.addr.String())
 			if err != nil {
 				slog.Warn("lifx discover", "error", err)
 				continue
 			}
-			pld, ok := p.payload.(*servicePayload)
-			if !ok {
-				slog.Warn("lifx discover: bad payload")
-				continue
+
+			d := discos[p.target]
+			switch p.ptype {
+			case devStateService:
+				pld, ok := p.payload.(*servicePayload)
+				if !ok {
+					slog.Warn("lifx discover: bad service payload")
+					continue
+				}
+				s := fmt.Sprintf("%s:%d", host, pld.port)
+				a, err := net.ResolveUDPAddr("udp", s)
+				if err != nil {
+					slog.Warn("lifx discover", "error", err)
+					continue
+				}
+				d.addr = a
+			case devStateVersion:
+				pld, ok := p.payload.(*versionPayload)
+				if !ok {
+					slog.Warn("lifx discover: bad version payload")
+					continue
+				}
+				d.product = products[pld.product]
 			}
-			s := fmt.Sprintf("%s:%d", host, pld.port)
-			a, err := net.ResolveUDPAddr("udp", s)
-			if err != nil {
-				slog.Warn("lifx discover", "error", err)
-				continue
-			}
-			addrs[p.target] = a
-			if len(addrs) >= l.Config.Devices && !ready {
-				close(l.ready)
-				ready = true
+			discos[p.target] = d
+			if len(discos) >= l.Config.Devices && !ready {
+				var finallyReady bool = true
+				for _, d := range discos {
+					if !d.ready() {
+						finallyReady = false
+						break
+					}
+				}
+				if finallyReady {
+					close(l.ready)
+					ready = true
+				}
 			}
 		case <-timeout:
 			if !ready {
@@ -469,10 +518,10 @@ func (l *Client) discoverRx(rx <-chan *packet) {
 				close(l.ready)
 				ready = true
 			}
-		case l.addrs <- addrs:
-			addrs = maps.Clone(addrs)
+		case l.discos <- discos:
+			discos = maps.Clone(discos)
 		case <-l.done:
-			close(l.addrs)
+			close(l.discos)
 			return
 		}
 	}
@@ -490,13 +539,13 @@ func (l *Client) addr(dev string) (*net.UDPAddr, error) {
 
 	<-l.ready
 
-	addrs := <-l.addrs
-	addr, ok := addrs[id]
+	discos := <-l.discos
+	d, ok := discos[id]
 	if !ok {
 		return nil, fmt.Errorf("dev %s not found", dev)
 	}
 
-	return addr, nil
+	return d.addr, nil
 }
 
 func (l *Client) get(addr net.Addr) (*statePayload, error) {

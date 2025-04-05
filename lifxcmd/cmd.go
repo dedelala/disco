@@ -226,6 +226,17 @@ func cmdColor(cmd disco.Cmd, states map[string]lifx.State, creqs map[string]lifx
 	hue, sat, _ := color.RGBtoHSV(color.CtoRGB(clr))
 	r.H = uint16(hue * math.MaxUint16)
 	r.S = uint16(sat * math.MaxUint16)
+	if len(s.Features.TemperatureRange) == 2 {
+		switch {
+		case color.HasK(clr):
+			k := color.CtoK(clr)
+			v := float64(s.Features.TemperatureRange[1] - s.Features.TemperatureRange[0])
+			r.K = s.Features.TemperatureRange[1] - uint16(k*v)
+		default:
+			r.K = s.Features.TemperatureRange[1]
+		}
+	}
+
 	creqs[cmd.Target] = r
 	return nil, nil
 }

@@ -7,6 +7,17 @@ import (
 	"gonum.org/v1/gonum/spatial/r2"
 )
 
+// HasK returns true if C has a fourth component which may be interpreted as
+// color temperature.
+func HasK(c uint32) bool {
+	return uint8(c>>24) != 0
+}
+
+// CtoK returns the K component of a KRGB as a float on the range 0.0 to 1.0
+func CtoK(c uint32) float64 {
+	return float64(uint8(c>>24)-1) / (math.MaxUint8 - 1)
+}
+
 // CtoRGB converts a 24 bit RGB value stored in the least significant bits
 func CtoRGB(c uint32) (r, g, b float64) {
 	r = float64(uint8(c>>16)) / math.MaxUint8
