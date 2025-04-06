@@ -172,18 +172,6 @@ func cmdColor(cmd disco.Cmd, ls map[string]hue.Light, reqs map[string]hue.LightP
 		return cout[i : i+1], nil
 	}
 
-	clr, err := disco.ParseColor(cmd.Args[0])
-	if err != nil {
-		return nil, fmt.Errorf("hue: %s: %w", cmd.Target, err)
-	}
-	x, y, _ := color.RGBtoXYB(color.CtoRGB(clr))
-	x, y = color.BoundToGamutXY(
-		x, y,
-		l.Color.Gamut.Red.X, l.Color.Gamut.Red.Y,
-		l.Color.Gamut.Green.X, l.Color.Gamut.Green.Y,
-		l.Color.Gamut.Blue.X, l.Color.Gamut.Blue.Y,
-	)
-
 	req := reqs[id]
 	d, err := disco.ParseDuration(cmd.Args)
 	if err != nil {
@@ -195,6 +183,31 @@ func cmdColor(cmd disco.Cmd, ls map[string]hue.Light, reqs map[string]hue.LightP
 	if req.Dynamics == nil {
 		req.Dynamics = &hue.LightPutDynamics{Duration: d.Milliseconds()}
 	}
+
+	clr, err := disco.ParseColor(cmd.Args[0])
+	if err != nil {
+		return nil, fmt.Errorf("hue: %s: %w", cmd.Target, err)
+	}
+
+	if color.HasK(clr) {
+		if l.ColorTemperature == nil {
+			return nil, fmt.Errorf("hue: %s has no mirek", cmd.Target)
+		}
+		k := color.CtoK(clr)
+		v := k * float64(l.ColorTemperature.MirekSchema.MirekMaximum-l.ColorTemperature.MirekSchema.MirekMinimum)
+		m := l.ColorTemperature.MirekSchema.MirekMinimum + int(v)
+		req.ColorTemperature = &hue.LightPutColorTemperature{Mirek: m}
+		reqs[id] = req
+		return nil, nil
+	}
+
+	x, y, _ := color.RGBtoXYB(color.CtoRGB(clr))
+	x, y = color.BoundToGamutXY(
+		x, y,
+		l.Color.Gamut.Red.X, l.Color.Gamut.Red.Y,
+		l.Color.Gamut.Green.X, l.Color.Gamut.Green.Y,
+		l.Color.Gamut.Blue.X, l.Color.Gamut.Blue.Y,
+	)
 
 	if !isPoint {
 		req.Color = hue.NewLightPutColor(x, y)

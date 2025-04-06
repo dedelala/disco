@@ -159,11 +159,12 @@ func (h *Client) Watch(ctx context.Context) (<-chan Event, error) {
 }
 
 type LightPutRequest struct {
-	On       *LightPutOn       `json:"on,omitempty"`
-	Dimming  *LightPutDimming  `json:"dimming,omitempty"`
-	Color    *LightPutColor    `json:"color,omitempty"`
-	Gradient *LightPutGradient `json:"gradient,omitempty"`
-	Dynamics *LightPutDynamics `json:"dynamics,omitempty"`
+	On               *LightPutOn               `json:"on,omitempty"`
+	Dimming          *LightPutDimming          `json:"dimming,omitempty"`
+	Color            *LightPutColor            `json:"color,omitempty"`
+	ColorTemperature *LightPutColorTemperature `json:"color_temperature,omitempty"`
+	Gradient         *LightPutGradient         `json:"gradient,omitempty"`
+	Dynamics         *LightPutDynamics         `json:"dynamics,omitempty"`
 }
 
 type LightPutOn struct {
@@ -207,6 +208,10 @@ type XY struct {
 	Y float64 `json:"y"`
 }
 
+type LightPutColorTemperature struct {
+	Mirek int `json:"mirek"`
+}
+
 type PutResponse struct {
 	Data []struct {
 		Rid   string `json:"rid"`
@@ -242,7 +247,7 @@ type Light struct {
 		XY        XY     `json:"xy"`
 	} `json:"color"`
 	ColorTemperature *struct {
-		Mirek       int `json:"mirek"`
+		Mirek       *int `json:"mirek"`
 		MirekSchema struct {
 			MirekMaximum int `json:"mirek_maximum"`
 			MirekMinimum int `json:"mirek_minimum"`
