@@ -206,7 +206,7 @@ func (l *Client) SetPower(target uint64, s SetPower) error {
 			ptype: liSetPower,
 		},
 		addr: d.addr,
-		payload: &liSetPowerPayload{
+		payload: &setPowerPayload{
 			level: s.Level,
 		},
 	}
@@ -234,7 +234,7 @@ func (l *Client) SetColor(target uint64, s SetColor) error {
 			ptype: liSetColor,
 		},
 		addr: d.addr,
-		payload: &setColorPayload{
+		payload: &colorPayload{
 			h:        s.H,
 			s:        s.S,
 			b:        s.B,
