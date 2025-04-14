@@ -2,6 +2,7 @@ package huecmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -18,6 +19,7 @@ type Cmdr struct {
 func (c Cmdr) Cmd(cmds []disco.Cmd) ([]disco.Cmd, error) {
 	var (
 		cout   []disco.Cmd
+		errs   error
 		sreqs  = map[string]hue.LightPutRequest{}
 		dcreqs = map[string]hue.LightPutRequest{}
 	)
@@ -32,43 +34,37 @@ func (c Cmdr) Cmd(cmds []disco.Cmd) ([]disco.Cmd, error) {
 	}
 
 	for _, cmd := range cmds {
+		var (
+			cs  []disco.Cmd
+			err error
+		)
 		switch cmd.Action {
 		case "switch":
-			cs, err := cmdSwitch(cmd, lm, sreqs)
-			if err != nil {
-				return nil, err
-			}
-			cout = append(cout, cs...)
+			cs, err = cmdSwitch(cmd, lm, sreqs)
 		case "dim":
-			cs, err := cmdDim(cmd, lm, dcreqs)
-			if err != nil {
-				return nil, err
-			}
-			cout = append(cout, cs...)
+			cs, err = cmdDim(cmd, lm, dcreqs)
 		case "color":
-			cs, err := cmdColor(cmd, lm, dcreqs)
-			if err != nil {
-				return nil, err
-			}
-			cout = append(cout, cs...)
+			cs, err = cmdColor(cmd, lm, dcreqs)
 		}
+		cout = append(cout, cs...)
+		errs = errors.Join(errs, err)
 	}
 
 	for id, req := range sreqs {
 		err := c.LightPut(id, req)
 		if err != nil {
-			return cout, err
+			errs = errors.Join(errs, err)
 		}
 	}
 
 	for id, req := range dcreqs {
 		err := c.LightPut(id, req)
 		if err != nil {
-			return cout, err
+			errs = errors.Join(errs, err)
 		}
 	}
 
-	return cout, nil
+	return cout, errs
 }
 
 func cmdSwitch(cmd disco.Cmd, ls map[string]hue.Light, reqs map[string]hue.LightPutRequest) ([]disco.Cmd, error) {
