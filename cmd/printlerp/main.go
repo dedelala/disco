@@ -18,36 +18,36 @@ func seq(first, last float64, num int) []float64 {
 	return fs
 }
 
-func rgb(first, last uint32, num int) []uint32 {
-	r0, g0, b0 := color.CtoRGB(first)
-	r1, g1, b1 := color.CtoRGB(last)
+func rgb(first, last color.Color, num int) []color.Color {
+	r0, g0, b0 := first.RGBf()
+	r1, g1, b1 := last.RGBf()
 	rs := seq(r0, r1, num)
 	gs := seq(g0, g1, num)
 	bs := seq(b0, b1, num)
-	cs := make([]uint32, num)
+	cs := make([]color.Color, num)
 	for i := 0; i < num; i++ {
-		cs[i] = color.RGBtoC(rs[i], gs[i], bs[i])
+		cs[i] = color.RGBf(rs[i], gs[i], bs[i])
 	}
 	return cs
 }
 
-func xy(first, last uint32, num int) []uint32 {
-	x0, y0, b0 := color.RGBtoXYB(color.CtoRGB(first))
-	x1, y1, b1 := color.RGBtoXYB(color.CtoRGB(last))
+func xy(first, last color.Color, num int) []color.Color {
+	x0, y0, b0 := first.XYBfPhilipsWideRGBD65()
+	x1, y1, b1 := last.XYBfPhilipsWideRGBD65()
 	xs := seq(x0, x1, num)
 	ys := seq(y0, y1, num)
 	bs := seq(b0, b1, num)
-	cs := make([]uint32, num)
+	cs := make([]color.Color, num)
 	for i := 0; i < num; i++ {
-		cs[i] = color.RGBtoC(color.XYBtoRGB(xs[i], ys[i], bs[i]))
+		cs[i] = color.XYBfPhilipsWideRGBD65(xs[i], ys[i], bs[i])
 	}
 	return cs
 }
 
-func printcs(cs []uint32) {
+func printcs(cs []color.Color) {
 	var s string
 	for _, c := range cs {
-		s += color.SprintcTermBG(c, "  ")
+		s += c.TermBG("  ")
 	}
 	fmt.Println(s)
 	fmt.Println(s)

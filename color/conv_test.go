@@ -7,9 +7,9 @@ import (
 	"gonum.org/v1/gonum/spatial/r2"
 )
 
-func TestCtoRGB(t *testing.T) {
+func TestCtoRGBf(t *testing.T) {
 	var zs = []struct {
-		c       uint32
+		c       Color
 		r, g, b float64
 	}{
 		{0, 0.0, 0.0, 0.0},
@@ -19,17 +19,17 @@ func TestCtoRGB(t *testing.T) {
 		{0x0000ff, 0.0, 0.0, 1.0},
 	}
 	for _, z := range zs {
-		r, g, b := CtoRGB(z.c)
+		r, g, b := z.c.RGBf()
 		if r != z.r || g != z.g || b != z.b {
 			t.Errorf("%x: expected %f,%f,%f got %f,%f,%f", z.c, z.r, z.g, z.b, r, g, b)
 		}
 	}
 }
 
-func TestRGBtoC(t *testing.T) {
+func TestRGBftoC(t *testing.T) {
 	var zs = []struct {
 		r, g, b float64
-		c       uint32
+		c       Color
 	}{
 		{0.0, 0.0, 0.0, 0},
 		{1.0, 1.0, 1.0, 0xffffff},
@@ -38,7 +38,7 @@ func TestRGBtoC(t *testing.T) {
 		{0.0, 0.0, 1.0, 0x0000ff},
 	}
 	for _, z := range zs {
-		c := RGBtoC(z.r, z.g, z.b)
+		c := RGBf(z.r, z.g, z.b)
 		if c != z.c {
 			t.Errorf("%f,%f,%f: expected %x got %x", z.r, z.g, z.b, z.c, c)
 		}
@@ -93,7 +93,7 @@ func TestRGBtoXYBtoRGB(t *testing.T) {
 		{0.0, 0.0, 1.0},
 	}
 	for _, z := range zs {
-		r, g, b := XYBtoRGB(RGBtoXYB(z.r, z.g, z.b))
+		r, g, b := XYBtoRGBPhilipsWideRGBD65(RGBtoXYBPhilipsWideRGBD65(z.r, z.g, z.b))
 		if r4(r) != z.r || r4(g) != z.g || r4(b) != z.b {
 			t.Errorf("expected %f,%f,%f got %f,%f,%f", z.r, z.g, z.b, r, g, b)
 		}

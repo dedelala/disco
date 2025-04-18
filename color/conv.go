@@ -7,34 +7,6 @@ import (
 	"gonum.org/v1/gonum/spatial/r2"
 )
 
-// HasK returns true if C has a fourth component which may be interpreted as
-// color temperature.
-func HasK(c uint32) bool {
-	return uint8(c>>24) != 0
-}
-
-// CtoK returns the K component of a KRGB as a float on the range 0.0 to 1.0
-func CtoK(c uint32) float64 {
-	return float64(uint8(c>>24)-1) / (math.MaxUint8 - 1)
-}
-
-// CtoRGB converts a 24 bit RGB value stored in the least significant bits
-func CtoRGB(c uint32) (r, g, b float64) {
-	r = float64(uint8(c>>16)) / math.MaxUint8
-	g = float64(uint8(c>>8)) / math.MaxUint8
-	b = float64(uint8(c)) / math.MaxUint8
-	return
-}
-
-// RGBtoC converts r, g, and b float64 values on the range of 0.0 to 1.0 to a
-// 24 bit RGB value stored in the least significant bits of a uint32. The inputs
-// are clamped to the range of 0.0 to 1.0
-func RGBtoC(r, g, b float64) (c uint32) {
-	return uint32(max(min(r, 1.0), 0.0)*math.MaxUint8)<<16 |
-		uint32(max(min(g, 1.0), 0.0)*math.MaxUint8)<<8 |
-		uint32(max(min(b, 1.0), 0.0)*math.MaxUint8)
-}
-
 // HSVtoRGB converts hue, saturation and brightness values on the range of 0.0
 // to 1.0 to RGB floating point values on the range of 0.0 to 1.0
 func HSVtoRGB(h, s, v float64) (r, g, b float64) {
@@ -91,10 +63,10 @@ func RGBtoHSV(r, g, b float64) (h, s, v float64) {
 	return
 }
 
-// RGBtoXYB converts red, green, and blue floating point values on the range
+// RGBtoXYBPhilipsWideRGBD65 converts red, green, and blue floating point values on the range
 // 0.0 to 1.0 to CIE colorspace x, y, and brightness values on the range 0.0
-// to 1.0 using Phillips Wide RGB D65 conversion.
-func RGBtoXYB(r, g, b float64) (x, y, bri float64) {
+// to 1.0 using Philips Wide RGB D65 conversion.
+func RGBtoXYBPhilipsWideRGBD65(r, g, b float64) (x, y, bri float64) {
 	r = gammaCorrect(r)
 	g = gammaCorrect(g)
 	b = gammaCorrect(b)
@@ -105,7 +77,7 @@ func RGBtoXYB(r, g, b float64) (x, y, bri float64) {
 		r, g, b = 1.0, 1.0, 1.0
 	}
 
-	// Phillips wide gamut conversion D65
+	// Philips wide gamut conversion D65
 	X := r*0.664511 + g*0.154324 + b*0.162028
 	Y := r*0.283881 + g*0.668433 + b*0.047685
 	Z := r*0.000088 + g*0.072310 + b*0.986039
@@ -125,10 +97,10 @@ func gammaCorrect(f float64) float64 {
 	return f / 12.92
 }
 
-// XYBtoRGB converts CIE colorspace x, y, and brightness values on the range 0.0
+// XYBtoRGBPhilipsWideRGBD65 converts CIE colorspace x, y, and brightness values on the range 0.0
 // to 1.0 to red, green, and blue floating point values on the range 0.0 to 1.0
-// using Phillips Wide RGB D65 conversion.
-func XYBtoRGB(x, y, bri float64) (r, g, b float64) {
+// using Philips Wide RGB D65 conversion.
+func XYBtoRGBPhilipsWideRGBD65(x, y, bri float64) (r, g, b float64) {
 	var X, Y, Z float64
 	if bri != 0 {
 		X = x * bri / y
@@ -136,7 +108,7 @@ func XYBtoRGB(x, y, bri float64) (r, g, b float64) {
 		Z = (1 - x - y) * bri / y
 	}
 
-	// Phillips Wide RGB D65
+	// Philips Wide RGB D65
 	r = X*1.656492 - Y*0.354851 - Z*0.255038
 	g = -X*0.707196 + Y*1.655397 + Z*0.036152
 	b = X*0.051713 - Y*0.121364 + Z*1.011530
@@ -164,8 +136,8 @@ func gammaReverse(f float64) float64 {
 
 // BoundToGamutXY compares the point x,y to the triangle formed by rx,ry, gx,gy,
 // bx,by. If the point falls within the triangle, x and y are returned. If the
-// point falls outside the triangle, the x and y value of the nearest point
-// on the triangle is returned.
+// point falls outside the triangle, the x and y values of the nearest point
+// on the triangle are returned.
 func BoundToGamutXY(x, y, rx, ry, gx, gy, bx, by float64) (cx, cy float64) {
 	c := boundRangeXY(
 		r2.Vec{X: x, Y: y},

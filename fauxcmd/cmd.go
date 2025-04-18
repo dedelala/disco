@@ -100,7 +100,7 @@ func cmdDim(cmd disco.Cmd, ds map[string]float64) ([]disco.Cmd, error) {
 	return nil, nil
 }
 
-func cmdColor(cmd disco.Cmd, cs map[string]uint32) ([]disco.Cmd, error) {
+func cmdColor(cmd disco.Cmd, cs map[string]color.Color) ([]disco.Cmd, error) {
 	if cmd.Target == "" {
 		var cout []disco.Cmd
 		for t, c := range cs {
@@ -115,13 +115,13 @@ func cmdColor(cmd disco.Cmd, cs map[string]uint32) ([]disco.Cmd, error) {
 		}
 		return []disco.Cmd{disco.ColorCmd(cmd.Target, c)}, nil
 	}
-	c, err := disco.ParseColor(cmd.Args[0])
+	c, err := color.Parse(cmd.Args[0])
 	if err != nil {
 		return nil, fmt.Errorf("faux: %s: %w", cmd.Target, err)
 	}
 
-	h, s, _ := color.RGBtoHSV(color.CtoRGB(c))
-	c = color.RGBtoC(color.HSVtoRGB(h, s, 1.0))
+	h, s, _ := c.HSVf()
+	c = color.HSVf(h, s, 1.0)
 
 	cs[cmd.Target] = c
 	return nil, nil

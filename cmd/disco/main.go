@@ -24,8 +24,8 @@ func colorStdout(cmd disco.Cmd) string {
 	if len(cmd.Args) == 0 {
 		return ""
 	}
-	c, _ := disco.ParseColor(cmd.Args[0])
-	return " " + color.SprintcTermBG(c, "  ")
+	c, _ := color.Parse(cmd.Args[0])
+	return " " + c.TermBG("  ")
 }
 
 type flags struct {

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+
+	"github.com/dedelala/disco/color"
 )
 
 type Config struct {
@@ -19,7 +21,7 @@ type Client struct {
 type Data struct {
 	Ss map[string]bool
 	Ds map[string]float64
-	Cs map[string]uint32
+	Cs map[string]color.Color
 }
 
 func New(c Config) *Client {
@@ -33,7 +35,7 @@ func (f *Client) Load() (*Data, error) {
 			d := &Data{
 				Ss: map[string]bool{},
 				Ds: map[string]float64{},
-				Cs: map[string]uint32{},
+				Cs: map[string]color.Color{},
 			}
 			return d, nil
 		}

@@ -180,11 +180,11 @@ func cmdColor(cmd disco.Cmd, states map[string]lifx.State, creqs map[string]lifx
 	if cmd.Target == "" {
 		var cout []disco.Cmd
 		for t, s := range states {
-			clr := color.RGBtoC(color.HSVtoRGB(
+			clr := color.HSVf(
 				float64(s.H)/math.MaxUint16,
 				float64(s.S)/math.MaxUint16,
 				1.0,
-			))
+			)
 			cout = append(cout, disco.ColorCmd(t, clr))
 		}
 		return cout, nil
@@ -194,15 +194,15 @@ func cmdColor(cmd disco.Cmd, states map[string]lifx.State, creqs map[string]lifx
 		return nil, fmt.Errorf("lifx: has no target %s", cmd.Target)
 	}
 	if len(cmd.Args) == 0 {
-		clr := color.RGBtoC(color.HSVtoRGB(
+		clr := color.HSVf(
 			float64(s.H)/math.MaxUint16,
 			float64(s.S)/math.MaxUint16,
 			1.0,
-		))
+		)
 		return []disco.Cmd{disco.ColorCmd(cmd.Target, clr)}, nil
 	}
 
-	clr, err := disco.ParseColor(cmd.Args[0])
+	clr, err := color.Parse(cmd.Args[0])
 	if err != nil {
 		return nil, fmt.Errorf("lifx: %s: %w", cmd.Target, err)
 	}
@@ -223,13 +223,13 @@ func cmdColor(cmd disco.Cmd, states map[string]lifx.State, creqs map[string]lifx
 			Duration: dms,
 		}
 	}
-	hue, sat, _ := color.RGBtoHSV(color.CtoRGB(clr))
+	hue, sat, _ := clr.HSVf()
 	r.H = uint16(hue * math.MaxUint16)
 	r.S = uint16(sat * math.MaxUint16)
 	if len(s.Features.TemperatureRange) == 2 {
 		switch {
-		case color.HasK(clr):
-			k := color.CtoK(clr)
+		case clr.HasK():
+			k := clr.Kf()
 			v := float64(s.Features.TemperatureRange[1] - s.Features.TemperatureRange[0])
 			r.K = s.Features.TemperatureRange[1] - uint16(k*v)
 		default:
@@ -275,11 +275,11 @@ func (c Cmdr) Watch(ctx context.Context) (<-chan disco.Cmd, error) {
 				cout <- disco.DimCmd(target, 100*float64(n.B)/math.MaxUint16)
 			}
 			if n.H != p.H || n.S != p.S {
-				c := color.RGBtoC(color.HSVtoRGB(
+				c := color.HSVf(
 					float64(n.H)/math.MaxUint16,
 					float64(n.S)/math.MaxUint16,
 					1.0,
-				))
+				)
 				cout <- disco.ColorCmd(target, c)
 			}
 		}

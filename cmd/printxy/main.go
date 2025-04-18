@@ -17,8 +17,8 @@ func main() {
 	step := 1.0 / float64(min(w/2, h))
 	for y := 1.0; y >= 0.0; y -= step * 1.25 {
 		for x := 0.0; x <= 1.0; x += step {
-			c := color.RGBtoC(color.XYBtoRGB(x, y, 1.0))
-			fmt.Print(color.SprintcTermBG(c, "  "))
+			c := color.XYBfPhilipsWideRGBD65(x, y, 1.0)
+			fmt.Print(c.TermBG("  "))
 		}
 		fmt.Println()
 	}

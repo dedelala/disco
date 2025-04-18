@@ -180,16 +180,16 @@ func cmdColor(cmd disco.Cmd, ls map[string]hue.Light, reqs map[string]hue.LightP
 		req.Dynamics = &hue.LightPutDynamics{Duration: d.Milliseconds()}
 	}
 
-	clr, err := disco.ParseColor(cmd.Args[0])
+	clr, err := color.Parse(cmd.Args[0])
 	if err != nil {
 		return nil, fmt.Errorf("hue: %s: %w", cmd.Target, err)
 	}
 
-	if color.HasK(clr) {
+	if clr.HasK() {
 		if l.ColorTemperature == nil {
 			return nil, fmt.Errorf("hue: %s has no mirek", cmd.Target)
 		}
-		k := color.CtoK(clr)
+		k := clr.Kf()
 		v := k * float64(l.ColorTemperature.MirekSchema.MirekMaximum-l.ColorTemperature.MirekSchema.MirekMinimum)
 		m := l.ColorTemperature.MirekSchema.MirekMinimum + int(v)
 		req.ColorTemperature = &hue.LightPutColorTemperature{Mirek: m}
@@ -197,7 +197,7 @@ func cmdColor(cmd disco.Cmd, ls map[string]hue.Light, reqs map[string]hue.LightP
 		return nil, nil
 	}
 
-	x, y, _ := color.RGBtoXYB(color.CtoRGB(clr))
+	x, y, _ := clr.XYBfPhilipsWideRGBD65()
 	x, y = color.BoundToGamutXY(
 		x, y,
 		l.Color.Gamut.Red.X, l.Color.Gamut.Red.Y,
@@ -230,9 +230,7 @@ func cmdColorGet(l hue.Light) []disco.Cmd {
 		return nil
 	}
 
-	clr := color.RGBtoC(
-		color.XYBtoRGB(l.Color.XY.X, l.Color.XY.Y, 1.0),
-	)
+	clr := color.XYBfPhilipsWideRGBD65(l.Color.XY.X, l.Color.XY.Y, 1.0)
 
 	if l.Gradient == nil {
 		return []disco.Cmd{disco.ColorCmd(l.Id, clr)}
@@ -245,12 +243,10 @@ func cmdColorGet(l hue.Light) []disco.Cmd {
 			cout = append(cout, disco.ColorCmd(id, clr))
 			continue
 		}
-		clr = color.RGBtoC(
-			color.XYBtoRGB(
-				l.Gradient.Points[i].Color.XY.X,
-				l.Gradient.Points[i].Color.XY.Y,
-				1.0,
-			),
+		clr = color.XYBfPhilipsWideRGBD65(
+			l.Gradient.Points[i].Color.XY.X,
+			l.Gradient.Points[i].Color.XY.Y,
+			1.0,
 		)
 		cout = append(cout, disco.ColorCmd(id, clr))
 	}
@@ -289,16 +285,12 @@ func watchEventData(cout chan<- disco.Cmd, d hue.EventData) {
 		cout <- disco.DimCmd(d.Id, d.Dimming.Brightness)
 	}
 	if d.Color != nil {
-		c := color.RGBtoC(
-			color.XYBtoRGB(d.Color.XY.X, d.Color.XY.Y, 1.0),
-		)
+		c := color.XYBfPhilipsWideRGBD65(d.Color.XY.X, d.Color.XY.Y, 1.0)
 		cout <- disco.ColorCmd(d.Id, c)
 	}
 	if d.Gradient != nil {
 		for i, p := range d.Gradient.Points {
-			c := color.RGBtoC(
-				color.XYBtoRGB(p.Color.XY.X, p.Color.XY.Y, 1.0),
-			)
+			c := color.XYBfPhilipsWideRGBD65(p.Color.XY.X, p.Color.XY.Y, 1.0)
 			id := fmt.Sprintf("%s/%d", d.Id, i)
 			cout <- disco.ColorCmd(id, c)
 		}

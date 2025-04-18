@@ -122,38 +122,12 @@ func ParseDuration(args []string) (time.Duration, error) {
 	return time.ParseDuration(args[1])
 }
 
-func ColorCmd(target string, c uint32) Cmd {
+func ColorCmd(target string, c color.Color) Cmd {
 	return newCmd(
 		"color",
 		target,
-		Sprintc(c),
+		c.String(),
 	)
-}
-
-func Sprintc(c uint32) string {
-	if color.HasK(c) {
-		return fmt.Sprintf("%08x", c)
-	}
-	return fmt.Sprintf("%06x", c)
-}
-
-func ParseColor(s string) (uint32, error) {
-	var c, ok = color.XKCD(s)
-	if ok {
-		return c, nil
-	}
-	c, ok = color.K(s)
-	if ok {
-		return c, nil
-	}
-	n, err := fmt.Sscanf(s, "%08x", &c)
-	if err != nil {
-		return c, err
-	}
-	if n != 1 {
-		return c, fmt.Errorf("unable to parse color %s", s)
-	}
-	return c, nil
 }
 
 type Cmdrs []Cmdr
@@ -292,11 +266,11 @@ func (s Splay) Cmd(cmds []Cmd) ([]Cmd, error) {
 			continue
 		}
 		targets := s.L[cmd.Target]
-		first, err := ParseColor(cmd.Args[0])
+		first, err := color.Parse(cmd.Args[0])
 		if err != nil {
 			return nil, err
 		}
-		last, err := ParseColor(cmd.Args[1])
+		last, err := color.Parse(cmd.Args[1])
 		if err != nil {
 			return nil, err
 		}
