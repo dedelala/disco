@@ -5,6 +5,7 @@ cmd/disco/disco
 cmd/discod/discod
 cmd/hue/hue
 cmd/lifx/lifx
+cmd/lscolor/lscolor
 cmd/numcolors/numcolors
 cmd/printgamut/printgamut
 cmd/printlerp/printlerp

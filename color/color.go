@@ -3,6 +3,8 @@ package color
 import (
 	"fmt"
 	"math"
+	"regexp"
+	"strings"
 )
 
 // Color is a KRGB color value packed in a uint32.
@@ -29,6 +31,43 @@ func Parse(s string) (Color, error) {
 func Lookup(s string) (Color, bool) {
 	c, ok := biblio[s]
 	return c, ok
+}
+
+type ListItem struct {
+	Name  string
+	Color Color
+}
+
+func List(match func(string) bool) []ListItem {
+	var matched []ListItem
+	for _, s := range liste {
+		if match(s) {
+			matched = append(matched, ListItem{Name: s, Color: biblio[s]})
+		}
+	}
+	return matched
+}
+
+func ListContains(substr string) []ListItem {
+	return List(func(s string) bool {
+		return strings.Contains(s, substr)
+	})
+}
+
+func ListPrefix(prefix string) []ListItem {
+	return List(func(s string) bool {
+		return strings.HasPrefix(s, prefix)
+	})
+}
+
+func ListMatch(pattern string) ([]ListItem, error) {
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+	return List(func(s string) bool {
+		return re.MatchString(s)
+	}), nil
 }
 
 func (c Color) String() string {
@@ -110,4 +149,10 @@ func XYBfPhilipsWideRGBD65(x, y, bri float64) Color {
 // to 1.0 using Philips Wide RGB D65 conversion.
 func (c Color) XYBfPhilipsWideRGBD65() (x, y, bri float64) {
 	return RGBtoXYBPhilipsWideRGBD65(c.RGBf())
+}
+
+// Strip returns a new Color with the brightness component maximized.
+func (c Color) Strip() Color {
+	h, s, _ := c.HSVf()
+	return HSVf(h, s, 1.0)
 }
