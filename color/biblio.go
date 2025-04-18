@@ -343,7 +343,6 @@ var biblio = map[string]Color{
 
 	// NBS-ISCC
 	// source: https://www.w3schools.com/colors/w3-nbs.txt
-
 	"nbs-vivid-pink":                    0xffb5ba,
 	"nbs-strong-pink":                   0xea9399,
 	"nbs-deep-pink":                     0xe4717a,
