@@ -7,10 +7,9 @@ import (
 )
 
 func main() {
-	cs := map[uint32]struct{}{}
+	cs := map[color.Color]struct{}{}
 	for c := uint32(0); c <= 0xffffff; c++ {
-		h, s, _ := color.RGBtoHSV(color.CtoRGB(c))
-		cs[color.RGBtoC(color.HSVtoRGB(h, s, 1))] = struct{}{}
+		cs[color.Color(c).Strip()] = struct{}{}
 	}
 	fmt.Println(len(cs))
 }
