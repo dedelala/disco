@@ -19,7 +19,7 @@ func Parse(s string) (Color, error) {
 	}
 	n, err := fmt.Sscanf(s, "%08x", &c)
 	if err != nil {
-		return c, err
+		return c, fmt.Errorf("parse color: %w", err)
 	}
 	if n != 1 {
 		return c, fmt.Errorf("unable to parse color %s", s)
